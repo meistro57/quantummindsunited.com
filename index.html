@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quantum Minds United — Hub</title>
+  <meta name="description" content="Quantum Minds United: The command deck. Enter the portal: community, library, projects, media, and more." />
+  <meta name="theme-color" content="#0a0f1f" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --night: #0a0f1f;
+      --aurora-50: #eef8ff;
+      --aurora-100: #ffffff;
+      --aurora-200: #aee2ff;
+      --aurora-300: #76ccff;
+      --aurora-400: #45b3ff;
+      --aurora-500: #2297ff;
+      --aurora-600: #1778db;
+      --aurora-700: #175fb0;
+      --aurora-800: #174f8f;
+      --aurora-900: #143f70;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--night);
+      color: white;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .font-display { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
+
+    /* Subtle film grain / star dust overlay */
+    .noise { 
+      position: fixed; 
+      inset: 0; 
+      pointer-events: none; 
+      opacity: .06; 
+      mix-blend-mode: screen; 
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.3"/></svg>'); 
+    }
+
+    /* Gradient light rings — non-blocking for clicks */
+    .rings:before, .rings:after { 
+      content: ""; 
+      position: absolute; 
+      inset: -20%; 
+      border-radius: 9999px; 
+      background: radial-gradient(60% 60% at 50% 50%, rgba(34,151,255,.20), transparent 60%); 
+      filter: blur(60px);
+      pointer-events: none; /* critical fix */
+    }
+    .rings:after { 
+      background: radial-gradient(40% 40% at 50% 50%, rgba(255,255,255,.08), transparent 60%); 
+      filter: blur(40px); 
+    }
+
+    /* Hero title glow */
+    .title-glow { 
+      text-shadow: 0 0 24px rgba(34,151,255,0.35), 0 0 2px rgba(255,255,255,0.35); 
+    }
+
+    /* Card glass */
+    .glass { 
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); 
+      border: 1px solid rgba(255,255,255,0.08); 
+      backdrop-filter: blur(8px); 
+      border-radius: 24px;
+      transition: all 0.3s ease;
+    }
+    .glass:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25); }
+
+    /* Logo animation */
+    .logo-animate { animation: hue 30s linear infinite; }
+    @keyframes hue { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+    @keyframes slowfloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    .card-float { animation: slowfloat 6s ease-in-out infinite; }
+
+    /* Layout */
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+    .header { padding-top: 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .logo-section { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(34,151,255,0.7), rgba(23,95,176,0.7));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
+    }
+
+    .nav { display: flex; gap: 16px; font-size: 14px; }
+    .nav a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.3s; }
+    .nav a:hover { color: white; }
+
+    .hero { text-align: center; padding: 64px 0 48px; }
+    .hero h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; margin: 0 0 20px; }
+    .gradient-text {
+      background: linear-gradient(90deg, var(--aurora-300), white, var(--aurora-500));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .hero p { font-size: 18px; color: rgba(255,255,255,0.8); max-width: 600px; margin: 0 auto 32px; line-height: 1.6; }
+
+    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 16px; text-decoration: none; font-weight: 600; transition: all 0.3s; }
+    .btn-primary { background: var(--aurora-600); color: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25); }
+    .btn-primary:hover { background: var(--aurora-500); }
+    .btn-secondary {
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); color: white;
+    }
+
+    /* Hub grid */
+    .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding-bottom: 96px; transition: all 0.5s ease; }
+    .hub-card { display: block; padding: 20px; text-decoration: none; color: white; position: relative; overflow: hidden; cursor: pointer; }
+    .hub-card:hover .card-glow { opacity: 1; }
+    .card-glow {
+      position: absolute; inset: -1px; border-radius: 24px;
+      background: radial-gradient(60% 60% at 25% 15%, rgba(34,151,255,.25), transparent);
+      filter: blur(20px); opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .card-content { position: relative; display: flex; align-items: flex-start; gap: 16px; }
+    .card-icon {
+      flex-shrink: 0; width: 48px; height: 48px; padding: 12px; border-radius: 16px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: center; color: var(--aurora-200); transition: color 0.3s;
+    }
+    .hub-card:hover .card-icon { color: white; }
+    .card-text h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+    .card-text p { font-size: 14px; color: rgba(255,255,255,0.7); margin: 0; line-height: 1.4; }
+
+    /* Iframe container */
+    .iframe-container {
+      display: none;
+      background: var(--night);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
+      position: relative;
+      min-height: 80vh;
+    }
+
+    .iframe-container.show {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .iframe-header {
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(8px);
+    }
+
+    .iframe-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .iframe-title-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--aurora-200);
+    }
+
+    .back-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    .content-iframe {
+      width: 100%;
+      height: 80vh;
+      border: none;
+      background: white;
+    }
+
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 80vh;
+      color: rgba(255,255,255,0.6);
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top: 3px solid var(--aurora-400);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Hide hub when iframe is shown */
+    .hub-hidden {
+      display: none;
+    }
+
+    /* Footer */
+    .footer { border-top: 1px solid rgba(255,255,255,0.1); padding: 40px 0; }
+    .footer-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; font-size: 14px; color: rgba(255,255,255,0.7); }
+    .footer-buttons { display: flex; gap: 12px; }
+    .footer-buttons a, .footer-buttons button {
+      padding: 8px 16px; border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+      color: white; text-decoration: none; cursor: pointer; transition: all 0.3s;
+    }
+    .footer-buttons a:hover, .footer-buttons button:hover {
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
+    }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; z-index: 50; display: none; }
+    .modal.show { display: block; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+    .modal-content {
+      position: relative; max-width: 600px; margin: 128px auto; padding: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+      border-radius: 24px; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
+    }
+    .modal h3 { font-size: 20px; margin: 0 0 8px; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav { display: none; }
+      .hero { padding: 32px 0; }
+      .footer-content { flex-direction: column; text-align: center; }
+      .content-iframe { height: 70vh; }
+      .loading-state { height: 70vh; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated starfield canvas -->
+  <canvas id="starfield" style="position: fixed; inset: 0; z-index: -1;"></canvas>
+  <div class="noise"></div>
+
+  <!-- Page wrapper -->
+  <div style="min-height: 100vh; position: relative; overflow: hidden;" class="rings">
+    <!-- Header -->
+    <header class="container header">
+      <div class="logo-section">
+        <div class="logo logo-animate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="opacity: 0.9;">
+            <circle cx="12" cy="12" r="9" stroke="white" stroke-opacity=".8"/>
+            <path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18" stroke="white" stroke-opacity=".5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-display" style="font-size: 22px; letter-spacing: 0.05em;">Quantum Minds United</div>
+          <div style="font-size: 18px; color: rgba(255,255,255,0.6);">Awaken · Create · Unite</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a id="nav-community" href="#" rel="noopener noreferrer">Community</a>
+        <a id="nav-library" href="#" rel="noopener noreferrer">Library</a>
+        <a id="nav-projects" href="#" rel="noopener noreferrer">Projects</a>
+        <a id="nav-about" href="./about.html" rel="noopener noreferrer">About</a>
+      </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="container hero" id="hero-section">
+      <h1 class="font-display title-glow">
+        Enter the Portal<br />
+        <span class="gradient-text">Your Command Deck of Awakening</span>
+      </h1>
+      <p>One map to your multiverse: forum, library, labs, media, campaigns, and the shop. Everything, elegantly connected.</p>
+      <div class="cta-buttons">
+        <a id="cta-community" href="#" class="btn btn-primary" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M3 20v-2a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v2" stroke="currentColor"/>
+            <circle cx="12" cy="7" r="3" stroke="currentColor"/>
+          </svg>
+          Enter Community
+        </a>
+        <a id="cta-random" href="#random" class="btn btn-secondary glass">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M20 4h-3a2 2 0 0 0-2 2v12m0 0V6m0 12h3a2 2 0 0 0 2-2V4M4 20l16-16" stroke="currentColor"/>
+          </svg>
+          Random Activation
+        </a>
+      </div>
+    </section>
+
+    <!-- Hub grid -->
+    <main class="container">
+      <div id="hub" class="hub-grid"></div>
+      
+      <!-- Iframe container -->
+      <div id="iframe-container" class="iframe-container">
+        <div class="iframe-header">
+          <div class="iframe-title">
+            <div id="iframe-icon" class="iframe-title-icon"></div>
+            <span id="iframe-title-text">Loading...</span>
+          </div>
+          <button id="back-btn" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor"/>
+            </svg>
+            Back to Portal
+          </button>
+        </div>
+        <div id="iframe-loading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Loading content...</p>
+        </div>
+        <iframe id="content-iframe" class="content-iframe" style="display: none;"></iframe>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer-content">
+        <div>
+          <div>© <span id="year"></span> Quantum Minds United. Built with love, curiosity, and a dash of British cheek.</div>
+          <div style="margin-top: 4px;">Questions? <a id="contact-link" href="#" style="text-decoration: underline; color: rgba(255,255,255,0.8);" rel="noopener">Contact</a> · <a id="support-link" href="#" style="text-decoration: underline; color: rgba(255,255,255,0.8);" rel="noopener">Support the Mission</a></div>
+        </div>
+        <div class="footer-buttons">
+          <a id="footer-about" href="about.html" rel="noopener noreferrer">About</a>
+          <button id="footer-random">Random Activation</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Activation Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3 class="font-display">Activation</h3>
+      <p id="activation-text" style="color: rgba(255,255,255,0.8);"></p>
+      <div class="modal-buttons">
+        <button id="activation-close" class="btn btn-secondary glass">Close</button>
+        <a id="activation-go" href="#" class="btn btn-primary" rel="noopener noreferrer">Take me there</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================================
+    // 🔧 QUICK CONFIG — YOUR LINKS
+    // ================================
+    const QUICK_LINKS = {
+      community: 'http://forum.quantummindsunited.com/',
+      library:   'http://quantummindsunited.com/books/mybooks/',
+      projects:  'http://quantummindsunited.com/hemi-lab/',
+      about:     'http://quantummindsunited.com/about.html',
+      contact:   'http://quantummindsunited.com/',
+      support:   'http://quantummindsunited.com/'
+    };
+
+    const HUB_LINKS = [
+      { title: 'Main Hub', href: 'http://quantummindsunited.com/', desc: 'Home base for everything Quantum Minds United. YOU ARE HERE! ', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8z" stroke="currentColor"/></svg>', external: true },
+      { title: 'Forum / Community Fireside', href: 'http://forum.quantummindsunited.com/', desc: 'Enter the living conversation — introductions, deep dives, and weekly activations.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 20v-2a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v2" stroke="currentColor"/><circle cx="12" cy="7" r="3" stroke="currentColor"/></svg>', external: true },
+      { title: 'PDF Library', href: 'http://quantummindsunited.com/books/mybooks/', desc: 'Books, PDFs, and channeled gems — a curated archive of hidden wisdom.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z" stroke="currentColor"/><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor"/></svg>', external: false },
+      { title: 'Deep Dive Audio', href: 'http://quantummindsunited.com/deep_dive/', desc: 'NotebookLM-generated podcasts — binge the big ideas.', icon: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor"/><path d="M10 9l6 3-6 3V9z" stroke="currentColor"/></svg>', external: false },
+      { title: 'NotebookLM Video Library', href: 'http://quantummindsunited.com/video/', desc: 'Short, potent video explainers. Watch, share, download.', icon: '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor"/><path d="M10 9l5 3-5 3V9z" stroke="currentColor"/></svg>', external: false },
+      { title: 'Hemi-Lab Ultra', href: 'http://quantummindsunited.com/hemi-lab/', desc: 'Real-time brainwave exploration. Precision beats, elegant UI — bring headphones.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 12h4l2 4 4-8 3 6h3" stroke="currentColor"/><circle cx="6" cy="18" r="2" stroke="currentColor"/><circle cx="18" cy="18" r="2" stroke="currentColor"/></svg>', external: false },
+      { title: 'File Manager / Digital Archive', href: 'http://quantummindsunited.com:8080/files/', desc: 'Direct access to the complete digital archive and file management system.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z" stroke="currentColor"/></svg>', external: false },
+      { title: 'Audiobooks', href: 'http://quantummindsunited.com/books/audio/', desc: 'Digital audiobook collection generated from Meistro\'s materials.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 5h9a2 2 0 0 1 2 2v12H7a2 2 0 0 1-2-2V5z" stroke="currentColor"/><path d="M16 7h3v12h-3" stroke="currentColor"/></svg>', external: false },
+      { title: 'Deep Research Docs', href: 'http://quantummindsunited.com/books/deep_research/', desc: 'Source docs, references, and long-form research for serious spelunkers.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M6 7h8M6 11h8M6 15h5" stroke="currentColor"/></svg>', external: false },
+      { title: 'Gateway Trainer', href: 'http://quantummindsunited.com/gateway_trainer/', desc: 'Your daily practice portal. Guided sessions, rituals, and tracking.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2v6m0 8v6M2 12h6m8 0h6M6 6l4 4m4 4l4 4m0-12l-4 4M10 14l-4 4" stroke="currentColor"/></svg>', external: false }
+    ];
+
+    // ==============================
+    // 🧠 RUNTIME — DO NOT EDIT BELOW
+    // ==============================
+
+    // Wire up top nav + CTAs
+    document.getElementById('nav-community').href = QUICK_LINKS.community;
+    document.getElementById('nav-library').href   = QUICK_LINKS.library;
+    document.getElementById('nav-projects').href  = QUICK_LINKS.projects;
+    document.getElementById('nav-about').href     = QUICK_LINKS.about;
+    document.getElementById('cta-community').href = QUICK_LINKS.community;
+    document.getElementById('footer-about').href  = QUICK_LINKS.about;
+    document.getElementById('contact-link').href  = QUICK_LINKS.contact;
+    document.getElementById('support-link').href  = QUICK_LINKS.support;
+
+    // Iframe functionality
+    const hubGrid = document.getElementById('hub');
+    const iframeContainer = document.getElementById('iframe-container');
+    const contentIframe = document.getElementById('content-iframe');
+    const iframeLoading = document.getElementById('iframe-loading');
+    const iframeTitleText = document.getElementById('iframe-title-text');
+    const iframeIcon = document.getElementById('iframe-icon');
+    const backBtn = document.getElementById('back-btn');
+    const heroSection = document.getElementById('hero-section');
+
+    function showIframe(title, url, icon) {
+      // Update iframe header
+      iframeTitleText.textContent = title;
+      iframeIcon.innerHTML = icon;
+      
+      // Show loading state
+      iframeLoading.style.display = 'flex';
+      contentIframe.style.display = 'none';
+      
+      // Hide hero and hub grid
+      heroSection.style.display = 'none';
+      hubGrid.classList.add('hub-hidden');
+      
+      // Show iframe container
+      iframeContainer.classList.add('show');
+      
+      // Load content
+      contentIframe.src = url;
+      
+      // Show iframe when loaded
+      contentIframe.onload = () => {
+        iframeLoading.style.display = 'none';
+        contentIframe.style.display = 'block';
+      };
+    }
+
+    function hideIframe() {
+      // Hide iframe container
+      iframeContainer.classList.remove('show');
+      
+      // Show hero and hub grid
+      setTimeout(() => {
+        heroSection.style.display = 'block';
+        hubGrid.classList.remove('hub-hidden');
+        
+        // Clear iframe
+        contentIframe.src = '';
+      }, 300);
+    }
+
+    // Back button handler
+    backBtn.addEventListener('click', hideIframe);
+
+    // Render hub cards
+    HUB_LINKS.forEach((item, idx) => {
+      const a = document.createElement('a');
+      a.className = 'hub-card glass card-float';
+      a.style.animationDelay = `${(idx % 6) * 120}ms`;
+      
+      if (item.external) {
+        // External links open in new tab
+        a.href = item.href;
+        a.setAttribute('rel', 'noopener noreferrer');
+        a.setAttribute('target', '_blank');
+      } else {
+        // Internal links open in iframe
+        a.href = '#';
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          showIframe(item.title, item.href, item.icon);
+        });
+      }
+      
+      a.innerHTML = `
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-icon">${item.icon}</div>
+          <div class="card-text">
+            <h3 class="font-display">${item.title}</h3>
+            <p>${item.desc}</p>
+          </div>
+        </div>`;
+      hubGrid.appendChild(a);
+    });
+
+    // Random activation modal
+    const modal = document.getElementById('modal');
+    const activationText = document.getElementById('activation-text');
+    const activationGo = document.getElementById('activation-go');
+
+    function openActivation() {
+      const link = HUB_LINKS[Math.floor(Math.random() * HUB_LINKS.length)];
+      const ACTIVATIONS = [
+        'Breathe in for 4, out for 6 — then open the Library and let a random page find you.',
+        'Ask a question you secretly want answered. Post it in the Fireside. Watch who shows up.',
+        'Choose a symbol today (spiral, triangle, eye). Notice where it appears. Then write about it in the Forum.',
+        'Create one minute of audio that feels like your future. Share it in the Community.',
+        'Open Hemi-Lab and let the frequencies guide your next creative project.',
+        'Browse the Deep Dive podcasts with your eyes closed. Click on the one that calls to you.'
+      ];
+      const thought = ACTIVATIONS[Math.floor(Math.random() * ACTIVATIONS.length)];
+      activationText.textContent = thought || 'Follow the nudge. The path reveals itself as you walk it.';
+      activationGo.href = link.href;
+      modal.classList.add('show');
+    }
+    function closeActivation() { modal.classList.remove('show'); }
+
+    document.getElementById('cta-random').addEventListener('click', (e) => { e.preventDefault(); openActivation(); });
+    document.getElementById('footer-random').addEventListener('click', openActivation);
+    document.getElementById('activation-close').addEventListener('click', closeActivation);
+    modal.addEventListener('click', (e) => { if (e.target.classList.contains('modal-backdrop')) closeActivation(); });
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Lightweight animated starfield (GPU-cheap)
+    const canvas = document.getElementById('starfield');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+
+    function resize() {
+      canvas.width = innerWidth; 
+      canvas.height = innerHeight;
+      const count = Math.min(250, Math.floor((innerWidth * innerHeight) / 12000));
+      stars = Array.from({ length: count }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        z: Math.random() * 1 + 0.2,
+        a: Math.random() * 0.8 + 0.2
+      }));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grd.addColorStop(0, '#060913');
+      grd.addColorStop(1, '#0a0f1f');
+      ctx.fillStyle = grd; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (const s of stars) {
+        const size = s.z * 1.4;
+        ctx.globalAlpha = s.a;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect(s.x, s.y, size, size);
+        s.y += s.z * 0.15;
+        if (s.y > canvas.height) { 
+          s.y = -2; 
+          s.x = Math.random() * canvas.width; 
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  </script>
+</body>
+</html>
