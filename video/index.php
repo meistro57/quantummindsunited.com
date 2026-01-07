@@ -1,951 +1,904 @@
 <?php
-// Scan directory for MP4 files
+// SCANNER: Read the timeline
 $videoFiles = [];
-$directory = __DIR__; // Current directory
+$directory = __DIR__;
 $files = scandir($directory);
+
+// CONFIG: How many hours counts as "New"?
+$newHours = 72; // 3 Days
+
+// SMART CATEGORIZER
+function getCategory($filename) {
+    $name = strtolower($filename);
+    if (preg_match('/(adhd|neuro|brain|broken|misfit)/', $name)) return 'neuro';
+    if (preg_match('/(ai |artificial|code|gpt|digital|robot|tech|machine)/', $name)) return 'ai';
+    if (preg_match('/(prophecy|nostradamus|future|timeline|asteroid|world|shift|war)/', $name)) return 'prophecy';
+    if (preg_match('/(god|jesus|spirit|soul|conscious|awakening|echoes|healing|temple)/', $name)) return 'spirit';
+    if (preg_match('/(quantum|physics|dimension|time|alien|ufo|galactic|starseed)/', $name)) return 'cosmic';
+    return 'general';
+}
+
+$categories = [
+    'all' => ['icon' => '♾️', 'label' => 'All Timelines'],
+    'ai' => ['icon' => '🤖', 'label' => 'Artificial Intelligence'],
+    'neuro' => ['icon' => '🧠', 'label' => 'Neurodivergence'],
+    'prophecy' => ['icon' => '🔮', 'label' => 'Prophecy'],
+    'spirit' => ['icon' => '✨', 'label' => 'Spirituality'],
+    'cosmic' => ['icon' => '👽', 'label' => 'Cosmic'],
+    'general' => ['icon' => '📂', 'label' => 'Archives']
+];
+
+$totalSize = 0;
 
 foreach ($files as $file) {
     if (pathinfo($file, PATHINFO_EXTENSION) === 'mp4') {
-        $videoFiles[] = $file;
+        $cleanName = pathinfo($file, PATHINFO_FILENAME);
+        $cleanName = preg_replace('/[\s\-_]+/', ' ', $cleanName);
+        $cleanName = ucwords(strtolower(trim($cleanName)));
+        
+        $modifiedTime = filemtime($file);
+        $fileSize = filesize($file);
+        $totalSize += $fileSize;
+        $isNew = (time() - $modifiedTime) < ($newHours * 3600);
+
+        $videoFiles[] = [
+            'filename' => $file,
+            'cleanName' => $cleanName,
+            'modified' => $modifiedTime,
+            'size' => $fileSize,
+            'category' => getCategory($file),
+            'isNew' => $isNew
+        ];
     }
 }
 
-// Sort files alphabetically
-sort($videoFiles);
+// Sort: Newest First
+usort($videoFiles, function($a, $b) {
+    return $b['modified'] - $a['modified'];
+});
+
+// Format Total Size
+$totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
+$totalCount = count($videoFiles);
+
+$playlistJson = json_encode($videoFiles);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script defer src="https://analytics.quantummindsunited.com/script.js" data-website-id="dbf19e80-6774-4172-9dff-ccd67c7d7b84"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NotebookLM Video Library - Quantum Minds United</title>
+    <title>Quantum Cinema ULTRA</title>
     <style>
         :root {
-            --primary-bg: #0a0f1c;
-            --secondary-bg: #1a1f35;
-            --card-bg: rgba(26, 31, 53, 0.6);
-            --card-border: rgba(139, 143, 164, 0.2);
-            --accent-blue: #4a9eff;
-            --text-primary: #ffffff;
-            --text-secondary: #8b8fa4;
-            --text-muted: #6b7280;
-            --gradient-primary: linear-gradient(135deg, #4a9eff, #0066cc);
-            --gradient-card: linear-gradient(135deg, rgba(74, 158, 255, 0.1), rgba(0, 102, 204, 0.05));
-            --shadow-glow: 0 4px 20px rgba(74, 158, 255, 0.2);
-            --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
-            --border-radius: 12px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg-deep: #050a14;
+            --glass: rgba(20, 30, 50, 0.6);
+            --glass-border: rgba(100, 200, 255, 0.1);
+            --accent: #00f2ff; /* Cyan Neon */
+            --accent-glow: rgba(0, 242, 255, 0.5);
+            --alert: #ff0055; /* Hot Pink/Red for NEW items */
+            --text-main: #e0e6ed;
+            --text-dim: #7a8c9e;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', sans-serif;
-            background: var(--primary-bg);
+            font-family: 'Segoe UI', 'Inter', sans-serif;
+            background-color: var(--bg-deep);
             background-image: 
-                radial-gradient(circle at 20% 80%, rgba(74, 158, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(74, 158, 255, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(74, 158, 255, 0.03) 0%, transparent 50%);
+                linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            color: var(--text-main);
             min-height: 100vh;
-            color: var(--text-primary);
-            line-height: 1.6;
-            position: relative;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
+            overflow-x: hidden;
         }
-        
-        /* Subtle animated background particles */
+
+        /* Ambient Glow Spot */
         body::before {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.1), transparent),
-                radial-gradient(2px 2px at 40px 70px, rgba(74, 158, 255, 0.2), transparent),
-                radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.05), transparent),
-                radial-gradient(1px 1px at 130px 80px, rgba(74, 158, 255, 0.1), transparent);
-            background-repeat: repeat;
-            background-size: 200px 150px;
-            animation: sparkle 20s linear infinite;
+            top: -20%; left: 20%;
+            width: 60%; height: 60%;
+            background: radial-gradient(circle, rgba(0, 100, 255, 0.15), transparent 70%);
             pointer-events: none;
             z-index: 0;
         }
-        
-        @keyframes sparkle {
-            from { transform: translateY(0); }
-            to { transform: translateY(-200px); }
+
+        /* --- CONTROL DECK (Header) --- */
+        .control-deck {
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto 30px auto;
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 15px 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
         }
-        
-        @keyframes shimmer {
-            0%, 100% { transform: translateX(-100%); }
-            50% { transform: translateX(100%); }
+
+        .brand-cluster {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
-        
-        /* Header matching main site */
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 40px 30px;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-card);
-            backdrop-filter: blur(10px);
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: var(--gradient-card);
-            animation: shimmer 3s ease-in-out infinite;
-            opacity: 0.5;
-        }
-        
-        .header-content {
-            position: relative;
-            z-index: 2;
-        }
-        
-        .header h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            background: var(--gradient-primary);
+
+        .brand {
+            font-weight: 800;
+            font-size: 1.4rem;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #fff, var(--accent));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-            text-shadow: 0 0 30px rgba(74, 158, 255, 0.3);
-        }
-        
-        .header .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            font-weight: 400;
-            margin-bottom: 20px;
-        }
-        
-        /* Navigation breadcrumb */
-        .breadcrumb {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 10px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 20px;
         }
-        
-        .breadcrumb a {
-            color: var(--accent-blue);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-        
-        .breadcrumb a:hover {
-            color: var(--text-primary);
-            text-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-        }
-        
-        /* Stats section with sort button */
-        .library-stats {
+
+        /* --- NEW STATS BAR --- */
+        .stats-bar {
             display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin: 30px 0;
-            flex-wrap: wrap;
-            z-index: 1;
+            gap: 15px;
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+            color: var(--accent);
+            opacity: 0.8;
+        }
+
+        .stat-item {
+            background: rgba(0, 242, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .search-module {
+            flex-grow: 1;
+            max-width: 300px;
             position: relative;
         }
-        
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            padding: 20px;
-            border-radius: var(--border-radius);
-            text-align: center;
-            min-width: 140px;
-            box-shadow: var(--shadow-card);
-            backdrop-filter: blur(10px);
-            transition: var(--transition);
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-glow);
-            border-color: rgba(74, 158, 255, 0.4);
-        }
-        
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .stat-label {
-            color: var(--text-muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
-        }
-        
-        .control-btn {
-            background: var(--gradient-primary);
+
+        .search-input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px 15px 10px 40px;
             color: white;
-            border: none;
-            padding: 12px 18px;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+
+        .action-cluster {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-glitch {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--accent);
+            padding: 8px 16px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            transition: var(--transition);
-            font-size: 14px;
-            box-shadow: var(--shadow-glow);
+            font-size: 0.9rem;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-glitch:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* --- FILTERS --- */
+        .filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
             position: relative;
-            overflow: hidden;
-            width: 100%;
+            z-index: 10;
         }
-        
-        .control-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+
+        .filter-chip {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-dim);
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.3s;
         }
-        
-        .control-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 158, 255, 0.4);
+
+        .filter-chip:hover, .filter-chip.active {
+            color: white;
+            background: rgba(255,255,255,0.05);
+            border-color: var(--glass-border);
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
         }
-        
-        .control-btn:hover::before {
-            left: 100%;
-        }
-        
-        .control-btn:active {
-            transform: translateY(0);
-        }
-        
-        /* Video grid */
-        .video-grid {
+
+        /* --- HOLOGRAPHIC GRID (TILT REMOVED) --- */
+        .grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-            z-index: 1;
-            position: relative;
-            align-items: stretch;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 50px 20px;
         }
-        
-        .video-item {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-card);
-            transition: var(--transition);
-            overflow: hidden;
+
+        .holo-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
             display: flex;
             flex-direction: column;
-            backdrop-filter: blur(10px);
-            position: relative;
-        }
-        
-        .video-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--gradient-card);
-            opacity: 0;
-            transition: var(--transition);
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .video-item:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-glow);
-            border-color: rgba(74, 158, 255, 0.4);
-        }
-        
-        .video-item:hover::before {
-            opacity: 1;
-        }
-        
-        .video-container {
-            position: relative;
-            width: 100%;
-            background: #000;
-            aspect-ratio: 16/9;
             overflow: hidden;
-            z-index: 2;
         }
         
-        .video-player {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background: #000;
-            display: block;
-            position: relative;
-            z-index: 8;
-        }
-        
-        .video-overlay {
+        .holo-card::after {
+            content: "";
             position: absolute;
-            bottom: 50px;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            color: white;
-            padding: 15px 20px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            pointer-events: none;
-            z-index: 5;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 12px;
+            box-shadow: 0 0 0 0 rgba(0, 242, 255, 0);
+            transition: box-shadow 0.4s ease;
+            z-index: -1;
         }
-        
-        .video-item:hover .video-overlay {
-            transform: translateY(0);
+
+        .holo-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(0, 242, 255, 0.4);
         }
-        
-        .fullscreen-btn {
+
+        .holo-card:hover::after {
+            box-shadow: 0 12px 40px rgba(0, 242, 255, 0.2);
+        }
+
+        /* --- NEW BADGE --- */
+        .new-badge {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(0,0,0,0.7);
+            background: var(--alert);
             color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
             z-index: 10;
+            box-shadow: 0 0 10px var(--alert);
+            animation: pulse-alert 2s infinite;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-alert {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 0, 85, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0); }
+        }
+
+        /* --- SHARE BUTTONS (CARD) --- */
+        .share-cluster {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 20;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+        }
+
+        .share-btn-card {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
         }
         
-        .video-item:hover .fullscreen-btn {
+        .share-btn-card:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .holo-card:hover .share-cluster {
             opacity: 1;
+            transform: translateY(0);
         }
-        
-        .fullscreen-btn:hover {
-            background: rgba(74, 158, 255, 0.8);
+
+        /* Mobile: Always show share buttons */
+        @media (max-width: 768px) {
+            .share-cluster {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
-        /* Video info section */
-        .video-info {
-            padding: 20px;
-            flex-grow: 1;
+
+        /* --- QR CODE MODAL --- */
+        .qr-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
             display: flex;
             flex-direction: column;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .video-title {
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: var(--text-primary);
-            display: flex;
             align-items: center;
-            line-height: 1.3;
-            flex-grow: 1;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
-        
-        .video-icon {
-            margin-right: 10px;
-            font-size: 20px;
-            flex-shrink: 0;
+
+        .qr-modal.active {
+            opacity: 1;
+            pointer-events: all;
         }
-        
-        .video-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            margin-top: auto;
-            margin-bottom: 15px;
-        }
-        
-        .detail-item {
-            background: rgba(139, 143, 164, 0.1);
-            border: 1px solid rgba(139, 143, 164, 0.2);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
+
+        .qr-content {
+            background: var(--glass);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 90%;
             text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            color: var(--text-secondary);
-        }
-        
-        .detail-icon {
-            font-size: 14px;
-        }
-        
-        /* Action buttons */
-        .video-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-        }
-        
-        .action-btn {
-            flex: 1;
-            padding: 12px 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
             position: relative;
-            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.3);
         }
-        
-        .action-btn::before {
-            content: '';
+
+        .qr-close {
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        .btn-primary {
-            background: var(--gradient-primary);
+            top: 10px;
+            right: 15px;
             color: white;
-            box-shadow: var(--shadow-glow);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: 0.3s;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 158, 255, 0.4);
+
+        .qr-close:hover {
+            opacity: 1;
+            color: var(--accent);
         }
-        
-        .btn-primary:hover::before {
-            left: 100%;
-        }
-        
-        .btn-secondary {
-            background: var(--card-bg);
-            color: var(--text-secondary);
-            border: 1px solid var(--card-border);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(74, 158, 255, 0.1);
-            color: var(--text-primary);
-            border-color: var(--accent-blue);
-            transform: translateY(-1px);
-        }
-        
-        /* No videos state */
-        .no-videos {
-            text-align: center;
-            padding: 60px 30px;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-card);
-            backdrop-filter: blur(10px);
-            position: relative;
-            z-index: 1;
-        }
-        
-        .no-videos h3 {
-            font-size: 2rem;
-            color: var(--text-primary);
-            margin-bottom: 15px;
-        }
-        
-        .no-videos p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-        }
-        
-        /* Toast notifications */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text-primary);
-            padding: 15px 20px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-glow);
-            backdrop-filter: blur(10px);
-            transform: translateX(100%);
-            transition: var(--transition);
-            z-index: 1000;
-            max-width: 300px;
+
+        .qr-title {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: var(--accent);
             font-weight: 600;
+        }
+
+        #qrCodeCanvas {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 0 auto 15px auto;
+            display: block;
+        }
+
+        .qr-url {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            word-break: break-all;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .thumb-box {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: #000;
+            overflow: hidden;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .thumb-box video {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+            transition: opacity 0.3s, transform 5s;
+        }
+        
+        .holo-card:hover .thumb-box video {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .card-body {
+            padding: 15px;
+            background: linear-gradient(180deg, rgba(20,30,50,0) 0%, rgba(10,15,25,0.8) 100%);
+        }
+
+        .video-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-meta {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* --- CINEMA MODE --- */
+        .cinema-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .cinema-layer.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .cinema-wrapper {
+            width: 90%;
+            max-width: 1200px;
+            aspect-ratio: 16/9;
+            box-shadow: 0 0 100px rgba(0, 242, 255, 0.1);
+            position: relative;
+        }
+
+        .cinema-wrapper video {
+            width: 100%; height: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .close-cinema {
+            position: absolute;
+            top: 20px; right: 30px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: 0.3s;
+        }
+        .close-cinema:hover { opacity: 1; color: var(--accent); }
+
+        .cinema-ui {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* --- TOAST NOTIFICATION --- */
+        .sci-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 10, 20, 0.9);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            box-shadow: 0 0 20px var(--accent-glow);
+            z-index: 2000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
         
-        .toast.show {
-            transform: translateX(0);
+        .sci-toast.active {
+            transform: translateX(-50%) translateY(0);
         }
-        
-        .toast.success {
-            border-left: 4px solid #10b981;
-        }
-        
-        .toast.error {
-            border-left: 4px solid #ef4444;
-        }
-        
-        /* Responsive design */
+
         @media (max-width: 768px) {
-            body {
-                padding: 15px;
-            }
-            
-            .header h1 {
-                font-size: 2.5rem;
-            }
-            
-            .video-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .library-stats {
-                gap: 15px;
-            }
-            
-            .stat-card {
-                min-width: 100px;
-                padding: 15px;
-            }
-            
-            .video-container {
-                aspect-ratio: 16/9;
-            }
+            .control-deck { flex-direction: column; align-items: stretch; }
+            .brand-cluster { align-items: center; }
+            .stats-bar { justify-content: center; }
+            .search-module { max-width: 100%; }
+            .grid-container { grid-template-columns: 1fr; }
         }
-        
-        @media (max-width: 500px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .video-details {
-                grid-template-columns: 1fr;
-            }
-            
-            .video-grid {
-                gap: 15px;
-            }
-            
-            .video-container {
-                aspect-ratio: 4/3;
-            }
-        }
-        
-        @media (min-width: 1200px) {
-            .video-grid {
-                grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            }
-        }
+
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="breadcrumb">
-                <a href="/">🏠 Quantum Minds United</a>
-                <span>→</span>
-                <span>NotebookLM Video Library</span>
+
+    <div class="control-deck">
+        <div class="brand-cluster">
+            <div class="brand">
+                <a href="/" style="text-decoration:none; color:inherit; font-size:1.2rem;">⚡</a>
+                <span>QUANTUM LIBRARY</span>
             </div>
-            <h1>🎬 NotebookLM Video Library</h1>
-            <p class="subtitle">Quantum Minds Collection</p>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px;">
-                Short, potent video explainers. Watch, share, download.
-            </p>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span>🎬</span> <?php echo $totalCount; ?> FILES
+                </div>
+                <div class="stat-item">
+                    <span>💾</span> <?php echo $totalSizeGB; ?> GB
+                </div>
+                <div class="stat-item">
+                    <span>⏳</span> <span id="totalRuntime">SCANNING...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="search-module">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search the archives..." onkeyup="filterSystem()">
+        </div>
+
+        <div class="action-cluster">
+            <button class="btn-glitch" onclick="oracleMode()">
+                🔮 Oracle
+            </button>
+            <button class="btn-glitch" onclick="playAll()">
+                ▶ Binge
+            </button>
         </div>
     </div>
-    
-    <?php if (empty($videoFiles)): ?>
-        <div class="no-videos">
-            <h3>🎥 No Videos Found</h3>
-            <p>Drop your .mp4 video files in this directory and refresh the page.</p>
-            <p style="font-size: 14px; margin-top: 20px; color: var(--text-muted);">
-                Supported format: MP4 files
-            </p>
-        </div>
-    <?php else: ?>
-        <?php 
-            $totalFiles = count($videoFiles);
-            $totalSize = 0;
-            foreach($videoFiles as $file) {
-                $totalSize += filesize($file);
-            }
-            $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
-            $totalSizeMB = round($totalSize / (1024 * 1024), 1);
-        ?>
-        
-        <div class="library-stats">
-            <div class="stat-card">
-                <div class="stat-number"><?php echo $totalFiles; ?></div>
-                <div class="stat-label">Videos</div>
+
+    <div class="filter-bar">
+        <?php foreach($categories as $key => $cat): ?>
+            <div class="filter-chip <?php echo $key === 'all' ? 'active' : ''; ?>" 
+                 onclick="setCategory('<?php echo $key; ?>', this)">
+                <?php echo $cat['icon'] . ' ' . $cat['label']; ?>
             </div>
-            <div class="stat-card">
-                <div class="stat-number"><?php echo $totalSizeGB > 0 ? $totalSizeGB . ' GB' : $totalSizeMB . ' MB'; ?></div>
-                <div class="stat-label">Total Size</div>
-            </div>
-            <div class="stat-card">
-                <button class="control-btn" id="sortBtn" onclick="sortByDate()">📅 Sort by Date</button>
-            </div>
-        </div>
-        
-        <div class="video-grid">
-            <?php foreach ($videoFiles as $index => $filename): ?>
-                <?php 
-                    // Clean up filename for display
-                    $displayName = pathinfo($filename, PATHINFO_FILENAME);
-                    $displayName = preg_replace('/[\s\-_]+/', ' ', $displayName);
-                    $displayName = preg_replace('/\s+/', ' ', trim($displayName));
-                    $displayName = ucwords(strtolower($displayName));
-                    
-                    // Get file info
-                    $fileSize = round(filesize($filename) / (1024 * 1024), 1);
-                    $fileDate = date('M j, Y', filemtime($filename));
-                    
-                    // Generate unique ID
-                    $videoId = 'video_' . $index;
-                ?>
-                <div class="video-item">
-                    <div class="video-container">
-                        <video 
-                            id="<?php echo $videoId; ?>" 
-                            class="video-player" 
-                            controls 
-                            preload="metadata"
-                            poster=""
-                        >
-                            <source src="<?php echo htmlspecialchars($filename); ?>" type="video/mp4">
-                            <p>Your browser doesn't support HTML5 video. 
-                               <a href="<?php echo htmlspecialchars($filename); ?>">Download the video</a> instead.</p>
-                        </video>
-                        
-                        <button class="fullscreen-btn" onclick="toggleFullscreen('<?php echo $videoId; ?>')">
-                            ⛶
-                        </button>
-                        
-                        <div class="video-overlay">
-                            <div style="font-weight: bold; margin-bottom: 5px;">
-                                <?php echo htmlspecialchars($displayName); ?>
-                            </div>
-                            <div style="font-size: 12px; opacity: 0.9;">
-                                <?php echo $fileSize; ?> MB • <?php echo $fileDate; ?>
-                            </div>
-                        </div>
+        <?php endforeach; ?>
+    </div>
+
+    <div class="grid-container" id="videoGrid">
+        <?php foreach ($videoFiles as $index => $video): ?>
+            <div class="holo-card" 
+                 data-category="<?php echo $video['category']; ?>"
+                 data-title="<?php echo strtolower($video['cleanName']); ?>"
+                 data-index="<?php echo $index; ?>"
+                 onclick="openCinema(<?php echo $index; ?>)">
+                
+                <?php if($video['isNew']): ?>
+                    <div class="new-badge">NEW</div>
+                <?php endif; ?>
+
+                <div class="share-cluster">
+                    <div class="share-btn-card" 
+                         onclick="event.stopPropagation(); shareLink('<?php echo htmlspecialchars($video['filename']); ?>')">
+                        🔗
                     </div>
-                    
-                    <div class="video-info">
-                        <div class="video-title">
-                            <span class="video-icon">🎥</span>
-                            <?php echo htmlspecialchars($displayName); ?>
-                        </div>
-                        
-                        <div class="video-details">
-                            <div class="detail-item">
-                                <span class="detail-icon">💾</span>
-                                <span><?php echo $fileSize; ?> MB</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-icon">📅</span>
-                                <span><?php echo $fileDate; ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-icon">📄</span>
-                                <span>MP4</span>
-                            </div>
-                        </div>
-                        
-                        <div class="video-actions">
-                            <button class="action-btn btn-primary" onclick="copyVideoLink('<?php echo htmlspecialchars($filename); ?>', '<?php echo htmlspecialchars($displayName); ?>')">
-                                🔗 Copy Link
-                            </button>
-                            <button class="action-btn btn-secondary" onclick="downloadVideo('<?php echo htmlspecialchars($filename); ?>')">
-                                ⬇️ Download
-                            </button>
-                        </div>
+                    <div class="share-btn-card" 
+                         onclick="event.stopPropagation(); showQR('<?php echo htmlspecialchars($video['filename']); ?>', '<?php echo htmlspecialchars($video['cleanName']); ?>')">
+                        📱
                     </div>
                 </div>
-            <?php endforeach; ?>
+                
+                <div class="thumb-box">
+                    <video 
+                        class="grid-video"
+                        preload="metadata"
+                        muted loop playsinline 
+                        onmouseenter="this.play()" 
+                        onmouseleave="this.pause(); this.currentTime=0;"
+                    >
+                        <source src="<?php echo htmlspecialchars($video['filename']); ?>#t=2.0" type="video/mp4">
+                    </video>
+                </div>
+                
+                <div class="card-body">
+                    <div class="video-title"><?php echo $video['cleanName']; ?></div>
+                    <div class="video-meta">
+                        <span><?php echo $categories[$video['category']]['label']; ?></span>
+                        <span><?php echo round($video['size'] / 1048576, 1); ?> MB</span>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <div id="cinemaLayer" class="cinema-layer">
+        <div class="close-cinema" onclick="closeCinema()">×</div>
+        <div class="cinema-wrapper">
+            <video id="mainPlayer" controls controlsList="nodownload">
+                <source src="" type="video/mp4">
+            </video>
         </div>
-    <?php endif; ?>
+        <div class="cinema-ui">
+            <button class="btn-glitch" onclick="prevVideo()">⮜ Prev</button>
+            <div style="display:flex; flex-direction:column; align-items:center;">
+                <span id="nowPlayingText" style="color:var(--text-dim); margin-bottom: 5px;">Select a video</span>
+                <button class="btn-glitch" id="shareCurrentBtn" style="font-size:0.7rem; padding: 4px 10px;">🔗 COPY LINK</button>
+            </div>
+            <button class="btn-glitch" onclick="nextVideo()">Next ⮞</button>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="qr-modal">
+        <div class="qr-content">
+            <div class="qr-close" onclick="closeQR()">×</div>
+            <div class="qr-title" id="qrTitle">QUANTUM TRANSMISSION</div>
+            <canvas id="qrCodeCanvas"></canvas>
+            <div class="qr-url" id="qrUrl"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="sci-toast">
+        <span>⚡</span> // TRANSMISSION LINK COPIED
+    </div>
 
     <script>
-        let sortedByDate = false;
-        let originalOrder = [];
+        const LIBRARY = <?php echo $playlistJson; ?>;
+        let currentIndex = 0;
+        let currentCategory = 'all';
+
+        // --- 1. RUNTIME CALCULATOR (THE "QUANTUM SCAN") ---
+        let totalSeconds = 0;
+        let videosProcessed = 0;
         
-        // Enhanced video controls with responsive handling
-        document.addEventListener('DOMContentLoaded', function() {
-            const videos = document.getElementsByTagName('video');
+        function updateRuntimeDisplay() {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60);
             
-            // Store original order for sorting
-            const videoGrid = document.querySelector('.video-grid');
-            originalOrder = Array.from(videoGrid.children);
-            
-            // Auto-pause other videos when one starts playing
-            document.addEventListener('play', function(e) {
-                for(let i = 0; i < videos.length; i++) {
-                    if(videos[i] != e.target) {
-                        videos[i].pause();
-                    }
+            const pad = (num) => num.toString().padStart(2, '0');
+            document.getElementById('totalRuntime').innerText = `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+        }
+
+        // Attach listeners to all grid videos
+        const gridVideos = document.querySelectorAll('.grid-video');
+        gridVideos.forEach(v => {
+            if (v.readyState >= 1) {
+                if(!v.dataset.scanned) {
+                    totalSeconds += v.duration;
+                    v.dataset.scanned = "true";
+                    updateRuntimeDisplay();
                 }
-            }, true);
-            
-            // Handle video aspect ratio dynamically
-            Array.from(videos).forEach(video => {
-                video.addEventListener('loadedmetadata', function() {
-                    const container = this.closest('.video-container');
-                    const aspectRatio = this.videoWidth / this.videoHeight;
-                    
-                    // Adjust container aspect ratio based on video
-                    if (aspectRatio > 2.5) {
-                        // Ultra-wide video
-                        container.style.aspectRatio = '21/9';
-                    } else if (aspectRatio < 1.2) {
-                        // Portrait or square video
-                        container.style.aspectRatio = '4/5';
-                    } else {
-                        // Standard video, keep 16:9
-                        container.style.aspectRatio = '16/9';
-                    }
-                });
-                
-                video.addEventListener('loadeddata', function() {
-                    // Set current time to 10% of video length for better poster frame
-                    if (this.duration) {
-                        this.currentTime = this.duration * 0.1;
-                    }
-                });
-                
-                video.addEventListener('seeked', function() {
-                    // Create canvas to capture frame
-                    if (!this.hasAttribute('data-poster-generated')) {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = this.videoWidth;
-                        canvas.height = this.videoHeight;
-                        ctx.drawImage(this, 0, 0);
-                        
-                        try {
-                            this.poster = canvas.toDataURL();
-                            this.setAttribute('data-poster-generated', 'true');
-                            this.currentTime = 0; // Reset to beginning
-                        } catch (e) {
-                            // Handle CORS or other issues silently
-                        }
-                    }
-                });
-            });
-            
-            // Handle window resize for responsive adjustments
-            let resizeTimeout;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(function() {
-                    // Recalculate video container sizes if needed
-                    Array.from(videos).forEach(video => {
-                        if (video.readyState >= 1) {
-                            video.dispatchEvent(new Event('loadedmetadata'));
-                        }
-                    });
-                }, 250);
-            });
-        });
-        
-        function sortByDate() {
-            const videoGrid = document.querySelector('.video-grid');
-            const button = document.getElementById('sortBtn');
-            sortedByDate = !sortedByDate;
-            
-            if (sortedByDate) {
-                // Sort by date - newest first
-                const items = Array.from(videoGrid.children);
-                
-                // Extract dates from meta items and sort
-                items.sort((a, b) => {
-                    const dateA = a.querySelector('.detail-item:nth-child(2) span:last-child').textContent;
-                    const dateB = b.querySelector('.detail-item:nth-child(2) span:last-child').textContent;
-                    return new Date(dateB) - new Date(dateA); // Newest first
-                });
-                
-                // Clear grid and append sorted items
-                videoGrid.innerHTML = '';
-                items.forEach(item => videoGrid.appendChild(item));
-                
-                // Update button appearance
-                button.textContent = '📅 Newest First';
-                button.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-                
-                showToast('✅ Sorted by date - newest first!', 'success');
             } else {
-                // Reset to original alphabetical order
-                videoGrid.innerHTML = '';
-                originalOrder.forEach(item => videoGrid.appendChild(item));
-                
-                // Reset button appearance
-                button.textContent = '📅 Sort by Date';
-                button.style.background = 'var(--gradient-primary)';
-                
-                showToast('✅ Restored alphabetical order!', 'success');
-            }
-        }
-        
-        // Fullscreen functionality
-        function toggleFullscreen(videoId) {
-            const video = document.getElementById(videoId);
-            
-            if (video.requestFullscreen) {
-                video.requestFullscreen();
-            } else if (video.webkitRequestFullscreen) {
-                video.webkitRequestFullscreen();
-            } else if (video.mozRequestFullScreen) {
-                video.mozRequestFullScreen();
-            } else if (video.msRequestFullscreen) {
-                video.msRequestFullscreen();
-            }
-        }
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            const activeVideo = document.querySelector('video:not([paused])');
-            if (!activeVideo) return;
-            
-            switch(e.key) {
-                case ' ':
-                    e.preventDefault();
-                    if (activeVideo.paused) {
-                        activeVideo.play();
-                    } else {
-                        activeVideo.pause();
+                v.addEventListener('loadedmetadata', () => {
+                    if(!v.dataset.scanned && isFinite(v.duration)) {
+                        totalSeconds += v.duration;
+                        v.dataset.scanned = "true";
+                        updateRuntimeDisplay();
                     }
-                    break;
-                case 'ArrowLeft':
-                    activeVideo.currentTime -= 10;
-                    break;
-                case 'ArrowRight':
-                    activeVideo.currentTime += 10;
-                    break;
-                case 'f':
-                    toggleFullscreen(activeVideo.id);
-                    break;
+                });
             }
         });
-        
-        // Video link and download functions
-        function copyVideoLink(filename, displayName) {
-            const currentUrl = window.location.href;
-            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-            const videoUrl = baseUrl + encodeURIComponent(filename);
-            
-            // Try to copy to clipboard
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(videoUrl).then(function() {
-                    showToast(`✅ Link copied for "${displayName}"!`, 'success');
-                }).catch(function() {
-                    fallbackCopyTextToClipboard(videoUrl, displayName);
-                });
-            } else {
-                fallbackCopyTextToClipboard(videoUrl, displayName);
+
+        // --- 2. DEEP LINKING ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const watchFile = urlParams.get('watch');
+
+            if(watchFile) {
+                const index = LIBRARY.findIndex(v => v.filename === watchFile);
+                if(index !== -1) {
+                    openCinema(index);
+                }
             }
+        });
+
+        // --- 3. SHARE SYSTEM ---
+        function shareLink(filename) {
+            const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            const shareUrl = baseUrl + "?watch=" + encodeURIComponent(filename);
+            
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast();
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
         }
-        
-        function fallbackCopyTextToClipboard(text, displayName) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-999999px";
-            textArea.style.top = "-999999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            try {
-                document.execCommand('copy');
-                showToast(`✅ Link copied for "${displayName}"!`, 'success');
-            } catch (err) {
-                showToast(`❌ Failed to copy link. Please copy manually: ${text}`, 'error');
-                console.error('Fallback: Oops, unable to copy', err);
-            }
-            
-            document.body.removeChild(textArea);
-        }
-        
-        function downloadVideo(filename) {
-            const link = document.createElement('a');
-            link.href = filename;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showToast(`⬇️ Download started for "${filename}"`, 'success');
-        }
-        
-        function showToast(message, type = 'success') {
-            // Remove existing toast if any
-            const existingToast = document.querySelector('.toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-            
-            // Create new toast
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            // Show toast
-            setTimeout(() => toast.classList.add('show'), 100);
-            
-            // Hide toast after 3 seconds
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('active');
             setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
+                toast.classList.remove('active');
             }, 3000);
         }
+
+        document.getElementById('shareCurrentBtn').addEventListener('click', () => {
+             shareLink(LIBRARY[currentIndex].filename);
+        });
+
+        // --- 4. QR CODE SYSTEM ---
+        function generateQRCode(text, size) {
+            const canvas = document.getElementById('qrCodeCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = size;
+            canvas.height = size;
+            
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}`;
+            
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+            };
+            img.onerror = function() {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, size, size);
+                ctx.fillStyle = '#000000';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('QR CODE', size/2, size/2 - 10);
+                ctx.fillText('GENERATION', size/2, size/2 + 10);
+                ctx.fillText('ERROR', size/2, size/2 + 30);
+            };
+            img.src = qrApiUrl;
+        }
+
+        function showQR(filename, title) {
+            const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            const shareUrl = baseUrl + "?watch=" + encodeURIComponent(filename);
+            
+            const modal = document.getElementById('qrModal');
+            const titleEl = document.getElementById('qrTitle');
+            const urlEl = document.getElementById('qrUrl');
+
+            titleEl.textContent = title;
+            urlEl.textContent = shareUrl;
+
+            generateQRCode(shareUrl, 256);
+
+            modal.classList.add('active');
+        }
+
+        function closeQR() {
+            document.getElementById('qrModal').classList.remove('active');
+        }
+
+        // --- 5. SEARCH & FILTER SYSTEM ---
+        function filterSystem() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.holo-card');
+
+            cards.forEach(card => {
+                const title = card.getAttribute('data-title');
+                const category = card.getAttribute('data-category');
+                
+                const matchesSearch = title.includes(query);
+                const matchesCat = currentCategory === 'all' || category === currentCategory;
+
+                if (matchesSearch && matchesCat) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function setCategory(cat, element) {
+            currentCategory = cat;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+            filterSystem();
+        }
+
+        // --- 6. CINEMA LOGIC ---
+        const player = document.getElementById('mainPlayer');
+        const layer = document.getElementById('cinemaLayer');
+
+        function openCinema(index) {
+            currentIndex = index;
+            const video = LIBRARY[index];
+            player.src = video.filename;
+            document.getElementById('nowPlayingText').innerText = video.cleanName;
+            layer.classList.add('active');
+            player.play();
+
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?watch=' + encodeURIComponent(video.filename);
+            window.history.pushState({path: newUrl}, '', newUrl);
+        }
+
+        function closeCinema() {
+            layer.classList.remove('active');
+            player.pause();
+            const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.pushState({path: baseUrl}, '', baseUrl);
+        }
+
+        function nextVideo() {
+            if(currentIndex < LIBRARY.length - 1) openCinema(currentIndex + 1);
+        }
+
+        function prevVideo() {
+            if(currentIndex > 0) openCinema(currentIndex - 1);
+        }
+
+        player.addEventListener('ended', nextVideo);
+
+        // --- 7. ORACLE MODE ---
+        function oracleMode() {
+            const cards = Array.from(document.querySelectorAll('.holo-card')).filter(c => c.style.display !== 'none');
+            if(cards.length === 0) return;
+
+            const randomCard = cards[Math.floor(Math.random() * cards.length)];
+            const index = randomCard.getAttribute('data-index');
+            
+            randomCard.style.transition = '0.2s';
+            randomCard.style.transform = 'scale(1.1)';
+            randomCard.style.boxShadow = '0 0 50px var(--accent)';
+            
+            setTimeout(() => {
+                openCinema(parseInt(index));
+                randomCard.style.transform = '';
+                randomCard.style.boxShadow = '';
+            }, 600);
+        }
+
+        function playAll() {
+            openCinema(0);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape') {
+                closeCinema();
+                closeQR();
+            }
+        });
     </script>
 </body>
 </html>
