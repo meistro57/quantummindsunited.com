@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Minds United - Database Query Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        const API_URL = 'query.php';
+        
+        function App() {
+            const [query, setQuery] = useState('');
+            const [results, setResults] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [stats, setStats] = useState(null);
+            const [tables, setTables] = useState([]);
+            const [selectedTable, setSelectedTable] = useState(null);
+            const [tableInfo, setTableInfo] = useState(null);
+            const [loadingSchema, setLoadingSchema] = useState(true);
+            const [showHelp, setShowHelp] = useState(false);
+
+            useEffect(() => {
+                loadSchema();
+            }, []);
+
+            const loadSchema = async () => {
+                setLoadingSchema(true);
+                try {
+                    const response = await fetch(API_URL + '?action=tables');
+                    const data = await response.json();
+                    
+                    if (data.tables) {
+                        setTables(data.tables);
+                        if (data.tables.length > 0) {
+                            selectTable(data.tables[0]);
+                        }
+                    }
+                } catch (err) {
+                    setError('Failed to load database schema: ' + err.message);
+                } finally {
+                    setLoadingSchema(false);
+                }
+            };
+
+            const selectTable = async (tableName) => {
+                setSelectedTable(tableName);
+                try {
+                    const response = await fetch(API_URL + '?action=describe&table=' + tableName);
+                    const data = await response.json();
+                    
+                    if (data.columns) {
+                        setTableInfo(data.columns);
+                        setQuery('SELECT * FROM ' + tableName + ' ORDER BY id DESC LIMIT 50');
+                    }
+                } catch (err) {
+                    console.error('Failed to get table info:', err);
+                }
+            };
+
+            const executeQuery = async () => {
+                setLoading(true);
+                setError('');
+                
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        setError(data.error);
+                        setResults([]);
+                    } else {
+                        setResults(data.results || []);
+                        setStats({
+                            count: data.results?.length || 0,
+                            executionTime: data.executionTime
+                        });
+                    }
+                } catch (err) {
+                    setError('Failed to connect to server: ' + err.message);
+                    setResults([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const buildQuery = (type) => {
+                if (!selectedTable) return;
+                
+                const queries = {
+                    all: 'SELECT * FROM ' + selectedTable + ' ORDER BY id DESC LIMIT 50',
+                    count: 'SELECT COUNT(*) as total FROM ' + selectedTable,
+                    recent: 'SELECT * FROM ' + selectedTable + ' ORDER BY timestamp DESC LIMIT 20',
+                    structure: 'DESCRIBE ' + selectedTable
+                };
+                
+                setQuery(queries[type] || queries.all);
+            };
+
+            const exportToCSV = () => {
+                if (results.length === 0) return;
+
+                const headers = Object.keys(results[0]);
+                const csvContent = [
+                    headers.join(','),
+                    ...results.map(row => 
+                        headers.map(header => {
+                            const value = row[header];
+                            if (value === null) return '';
+                            if (typeof value === 'string' && value.includes(',')) {
+                                return '"' + value.replace(/"/g, '""') + '"';
+                            }
+                            return value;
+                        }).join(',')
+                    )
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (selectedTable || 'query') + '_' + Date.now() + '.csv';
+                a.click();
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 p-6">
+                    <div className="max-w-7xl mx-auto space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-blue-500 blur-xl opacity-50"></div>
+                                    <svg className="w-10 h-10 text-blue-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-bold text-white">Quantum Minds United</h1>
+                                    <p className="text-sm text-blue-300">Database Query Dashboard</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={loadSchema}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-sm text-blue-300 transition-all backdrop-blur-sm"
+                            >
+                                <svg className={'w-4 h-4 ' + (loadingSchema ? 'animate-spin' : '')} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Refresh Schema
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            <div className="lg:col-span-1 space-y-4">
+                                <div className="bg-slate-900/50 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-sm font-medium text-gray-300">Tables ({tables.length})</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {tables.map((table) => (
+                                            <button
+                                                key={table}
+                                                onClick={() => selectTable(table)}
+                                                className={'w-full text-left px-3 py-2 rounded-lg text-sm transition-all ' + (selectedTable === table ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50' : 'text-gray-400 hover:bg-gray-700/50')}
+                                            >
+                                                {table}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {tableInfo && (
+                                    <div className="bg-slate-900/50 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10">
+                                        <div className="mb-3">
+                                            <span className="text-sm font-medium text-gray-300">Columns</span>
+                                        </div>
+                                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                                            {tableInfo.map((col, idx) => (
+                                                <div key={idx} className="text-xs">
+                                                    <div className="font-mono text-blue-300">{col.Field}</div>
+                                                    <div className="text-gray-500">{col.Type}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="lg:col-span-3 space-y-4">
+                                {selectedTable && (
+                                    <div className="bg-slate-900/50 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10">
+                                        <div className="mb-3">
+                                            <span className="text-sm font-medium text-gray-300">Quick Actions for {selectedTable}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button onClick={() => buildQuery('all')} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 rounded-lg text-sm text-blue-300 transition-all">
+                                                View All
+                                            </button>
+                                            <button onClick={() => buildQuery('count')} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 rounded-lg text-sm text-blue-300 transition-all">
+                                                Count Rows
+                                            </button>
+                                            <button onClick={() => buildQuery('recent')} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 rounded-lg text-sm text-blue-300 transition-all">
+                                                Recent
+                                            </button>
+                                            <button onClick={() => buildQuery('structure')} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 rounded-lg text-sm text-blue-300 transition-all">
+                                                Structure
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-slate-900/50 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-gray-300">SQL Query</span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setShowHelp(!showHelp)}
+                                                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-300 transition-all"
+                                            >
+                                                {showHelp ? 'Hide Help' : 'Show Help'}
+                                            </button>
+                                            <button
+                                                onClick={executeQuery}
+                                                disabled={loading || !query}
+                                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-all"
+                                            >
+                                                {loading ? 'Running...' : 'Execute'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {showHelp && (
+                                        <div className="mb-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-gray-300 space-y-2 max-h-96 overflow-y-auto">
+                                            <div className="font-semibold text-blue-300 mb-2">Quick SQL Guide:</div>
+                                            
+                                            <div className="space-y-1.5">
+                                                <div className="font-semibold text-blue-300 text-xs mt-2">Basic Queries:</div>
+                                                <div><span className="text-blue-400 font-mono">SELECT * FROM table_name</span> - Get all data from a table</div>
+                                                <div><span className="text-blue-400 font-mono">SELECT column1, column2 FROM table_name</span> - Get specific columns</div>
+                                                <div><span className="text-blue-400 font-mono">SELECT DISTINCT column FROM table_name</span> - Get unique values only</div>
+                                                
+                                                <div className="font-semibold text-blue-300 text-xs mt-3">Filtering:</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE column = 'value'</span> - Exact match</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE column LIKE '%text%'</span> - Contains text (% = wildcard)</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE column IN ('val1', 'val2')</span> - Match any of these values</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE column BETWEEN 10 AND 100</span> - Value in range</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE column IS NULL</span> - Empty values</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE col1 = 'x' AND col2 = 'y'</span> - Multiple conditions (both must be true)</div>
+                                                <div><span className="text-blue-400 font-mono">WHERE col1 = 'x' OR col2 = 'y'</span> - Either condition can be true</div>
+                                                
+                                                <div className="font-semibold text-blue-300 text-xs mt-3">Sorting:</div>
+                                                <div><span className="text-blue-400 font-mono">ORDER BY column ASC</span> - Sort ascending (A-Z, 0-9, oldest first)</div>
+                                                <div><span className="text-blue-400 font-mono">ORDER BY column DESC</span> - Sort descending (Z-A, 9-0, newest first)</div>
+                                                <div><span className="text-blue-400 font-mono">ORDER BY col1 DESC, col2 ASC</span> - Sort by multiple columns</div>
+                                                
+                                                <div className="font-semibold text-blue-300 text-xs mt-3">Grouping & Aggregation:</div>
+                                                <div><span className="text-blue-400 font-mono">COUNT(*)</span> - Count all rows</div>
+                                                <div><span className="text-blue-400 font-mono">COUNT(DISTINCT column)</span> - Count unique values</div>
+                                                <div><span className="text-blue-400 font-mono">GROUP BY column</span> - Group results by column value</div>
+                                                <div><span className="text-blue-400 font-mono">HAVING COUNT(*) > 5</span> - Filter groups (use after GROUP BY)</div>
+                                                <div><span className="text-blue-400 font-mono">SUM(column), AVG(column), MAX(column), MIN(column)</span> - Math functions</div>
+                                                
+                                                <div className="font-semibold text-blue-300 text-xs mt-3">Limiting Results:</div>
+                                                <div><span className="text-blue-400 font-mono">LIMIT 50</span> - Get first 50 results</div>
+                                                <div><span className="text-blue-400 font-mono">LIMIT 10 OFFSET 20</span> - Skip 20 rows, then get 10 (for pagination)</div>
+                                            </div>
+                                            
+                                            <div className="pt-2 border-t border-blue-500/30 mt-3">
+                                                <div className="font-semibold text-blue-300 mb-1.5">Examples:</div>
+                                                <div className="space-y-1.5">
+                                                    <div className="font-mono text-gray-400 text-xs">SELECT * FROM agents WHERE provider = 'openai' ORDER BY id DESC LIMIT 10</div>
+                                                    <div className="font-mono text-gray-400 text-xs">SELECT provider, COUNT(*) as total FROM agents GROUP BY provider</div>
+                                                    <div className="font-mono text-gray-400 text-xs">SELECT * FROM messages WHERE created_at BETWEEN '2025-01-01' AND '2025-12-31'</div>
+                                                    <div className="font-mono text-gray-400 text-xs">SELECT model, AVG(temperature) as avg_temp FROM agents GROUP BY model HAVING COUNT(*) > 5</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <textarea
+                                        value={query}
+                                        onChange={(e) => setQuery(e.target.value)}
+                                        className="w-full h-32 bg-gray-900/50 border border-blue-500/30 rounded-lg p-3 text-gray-300 font-mono text-sm focus:outline-none focus:border-blue-500/50 resize-none"
+                                        placeholder="Select a table or write your SQL query..."
+                                    />
+                                </div>
+
+                                {error && (
+                                    <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+                                        <div className="text-red-400 font-mono text-sm">{error}</div>
+                                    </div>
+                                )}
+
+                                {stats && (
+                                    <div className="flex items-center justify-between bg-slate-900/50 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10">
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-sm">
+                                                <span className="text-gray-400">Results: </span>
+                                                <span className="text-white font-semibold">{stats.count}</span>
+                                            </div>
+                                            {stats.executionTime && (
+                                                <div className="text-sm">
+                                                    <span className="text-gray-400">Time: </span>
+                                                    <span className="text-white font-semibold">{stats.executionTime}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {results.length > 0 && (
+                                            <button
+                                                onClick={exportToCSV}
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 rounded-lg text-sm text-green-300 transition-all"
+                                            >
+                                                Export CSV
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {results.length > 0 && (
+                            <div className="bg-slate-900/50 backdrop-blur-sm border border-blue-500/30 rounded-lg overflow-hidden shadow-lg shadow-blue-500/10">
+                                <div className="overflow-x-auto overflow-y-auto" style={{maxHeight: '600px'}}>
+                                    <table className="w-full">
+                                        <thead className="sticky top-0 bg-blue-500/10 border-b border-blue-500/30">
+                                            <tr>
+                                                {Object.keys(results[0]).map((header) => (
+                                                    <th key={header} className="px-3 py-1.5 text-left text-xs font-medium text-blue-300 uppercase tracking-wider whitespace-nowrap">
+                                                        {header}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-blue-500/10">
+                                            {results.map((row, idx) => (
+                                                <tr key={idx} className="hover:bg-blue-500/5 transition-colors">
+                                                    {Object.values(row).map((value, cellIdx) => (
+                                                        <td key={cellIdx} className="px-3 py-1.5 text-xs text-gray-300 font-mono align-top" style={{maxWidth: '400px'}}>
+                                                            {value === null ? (
+                                                                <span className="text-gray-500 italic">null</span>
+                                                            ) : typeof value === 'object' ? (
+                                                                <div className="text-yellow-400 whitespace-pre-wrap break-words">{JSON.stringify(value, null, 2)}</div>
+                                                            ) : String(value).length > 100 ? (
+                                                                <div className="whitespace-pre-wrap break-words">{String(value)}</div>
+                                                            ) : (
+                                                                <div className="truncate" title={String(value)}>{String(value)}</div>
+                                                            )}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
