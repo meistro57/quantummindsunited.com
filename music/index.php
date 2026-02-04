@@ -1,7 +1,7 @@
 <?php
 /**
- * 🌌 Quantum Music Library - Ultimate Edition (Flux Updated)
- * Features: Sticky Player, JSON Cache, 3D Card Effects, Audio Visualizer
+ * 🌌 Quantum Music Library - Enhanced with ID3 Metadata
+ * Features: Sticky Player, JSON Cache, 3D Card Effects, Full ID3 Tag Support
  */
 
 // --- CONFIGURATION ---
@@ -11,21 +11,82 @@ $directory = __DIR__;
 
 // --- HELPER FUNCTIONS ---
 
-function getAudioDuration($filepath) {
+function getID3Metadata($filepath) {
+    $metadata = [
+        'title' => null,
+        'artist' => null,
+        'album' => null,
+        'year' => null,
+        'genre' => null,
+        'track_number' => null,
+        'comment' => null,
+        'duration' => null,
+        'bitrate' => null,
+        'sample_rate' => null
+    ];
+
+    // Try getID3 library first (most reliable)
     if (class_exists('getID3')) {
-        $getID3 = new getID3();
-        $fileInfo = $getID3->analyze($filepath);
-        if (isset($fileInfo['playtime_seconds'])) return round($fileInfo['playtime_seconds']);
+        try {
+            $getID3 = new getID3();
+            $fileInfo = $getID3->analyze($filepath);
+            getid3_lib::CopyTagsToComments($fileInfo);
+            
+            // Extract duration
+            if (isset($fileInfo['playtime_seconds'])) {
+                $metadata['duration'] = round($fileInfo['playtime_seconds']);
+            }
+            
+            // Extract bitrate and sample rate
+            if (isset($fileInfo['audio']['bitrate'])) {
+                $metadata['bitrate'] = round($fileInfo['audio']['bitrate'] / 1000); // Convert to kbps
+            }
+            if (isset($fileInfo['audio']['sample_rate'])) {
+                $metadata['sample_rate'] = $fileInfo['audio']['sample_rate'];
+            }
+            
+            // Extract tags from comments array (getID3 normalizes tags here)
+            if (isset($fileInfo['comments'])) {
+                $comments = $fileInfo['comments'];
+                
+                if (isset($comments['title'][0])) $metadata['title'] = $comments['title'][0];
+                if (isset($comments['artist'][0])) $metadata['artist'] = $comments['artist'][0];
+                if (isset($comments['album'][0])) $metadata['album'] = $comments['album'][0];
+                if (isset($comments['year'][0])) $metadata['year'] = $comments['year'][0];
+                if (isset($comments['genre'][0])) $metadata['genre'] = $comments['genre'][0];
+                if (isset($comments['track_number'][0])) $metadata['track_number'] = $comments['track_number'][0];
+                if (isset($comments['comment'][0])) $metadata['comment'] = $comments['comment'][0];
+            }
+            
+            // Fallback to tags array if comments empty
+            if (empty($metadata['title']) && isset($fileInfo['tags'])) {
+                foreach ($fileInfo['tags'] as $tagType => $tagData) {
+                    if (isset($tagData['title'][0]) && empty($metadata['title'])) 
+                        $metadata['title'] = $tagData['title'][0];
+                    if (isset($tagData['artist'][0]) && empty($metadata['artist'])) 
+                        $metadata['artist'] = $tagData['artist'][0];
+                    if (isset($tagData['album'][0]) && empty($metadata['album'])) 
+                        $metadata['album'] = $tagData['album'][0];
+                    if (isset($tagData['year'][0]) && empty($metadata['year'])) 
+                        $metadata['year'] = $tagData['year'][0];
+                    if (isset($tagData['genre'][0]) && empty($metadata['genre'])) 
+                        $metadata['genre'] = $tagData['genre'][0];
+                }
+            }
+        } catch (Exception $e) {
+            error_log("getID3 error for $filepath: " . $e->getMessage());
+        }
     }
     
-    $ffprobe = shell_exec("ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($filepath) . " 2>&1");
-    if ($ffprobe && is_numeric(trim($ffprobe))) return round(floatval(trim($ffprobe)));
-    
-    if (pathinfo($filepath, PATHINFO_EXTENSION) === 'mp3') {
-        $mp3info = shell_exec("mp3info -p \"%S\" " . escapeshellarg($filepath) . " 2>&1");
-        if ($mp3info && is_numeric(trim($mp3info))) return intval(trim($mp3info));
+    // Fallback: Try ffprobe for duration if getID3 failed
+    if ($metadata['duration'] === null) {
+        $ffprobe = shell_exec("ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($filepath) . " 2>&1");
+        if ($ffprobe && is_numeric(trim($ffprobe))) {
+            $metadata['duration'] = round(floatval(trim($ffprobe)));
+        }
     }
-    return null;
+    
+    return $metadata;
 }
 
 function formatDuration($seconds) {
@@ -39,9 +100,36 @@ function formatTrackTitle($filename) {
     $name = pathinfo($filename, PATHINFO_FILENAME);
     $name = preg_replace('/[\s\-_]+/', ' ', $name);
     $name = ucwords(strtolower(trim($name)));
-    // Polish: Force specific words to uppercase
     $replacements = ['Ai' => 'AI', 'Bpm' => 'BPM', 'Id' => 'ID', 'Feat' => 'ft.'];
     return strtr($name, $replacements);
+}
+
+function extractEmbeddedArtwork($filepath) {
+    if (!class_exists('getID3')) return null;
+    
+    try {
+        $getID3 = new getID3();
+        $fileInfo = $getID3->analyze($filepath);
+        
+        // Check for embedded artwork in ID3v2 tags
+        if (isset($fileInfo['comments']['picture'][0])) {
+            $picture = $fileInfo['comments']['picture'][0];
+            if (isset($picture['data']) && isset($picture['image_mime'])) {
+                // Return base64 encoded image
+                return 'data:' . $picture['image_mime'] . ';base64,' . base64_encode($picture['data']);
+            }
+        }
+        
+        // Alternative location for embedded images
+        if (isset($fileInfo['id3v2']['APIC'][0]['data'])) {
+            $mime = $fileInfo['id3v2']['APIC'][0]['mime'] ?? 'image/jpeg';
+            return 'data:' . $mime . ';base64,' . base64_encode($fileInfo['id3v2']['APIC'][0]['data']);
+        }
+    } catch (Exception $e) {
+        error_log("Artwork extraction error: " . $e->getMessage());
+    }
+    
+    return null;
 }
 
 // --- MAIN LOGIC & CACHING ---
@@ -56,6 +144,7 @@ if (!$forceRefresh && file_exists($cacheFile) && (time() - filemtime($cacheFile)
     $artFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     $availableImages = [];
 
+    // Scan for external artwork files
     foreach (scandir($directory) as $file) {
         $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
         if (in_array($ext, $artFormats)) {
@@ -74,36 +163,78 @@ if (!$forceRefresh && file_exists($cacheFile) && (time() - filemtime($cacheFile)
         $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
         if (in_array($extension, $supportedFormats)) {
             $basename = pathinfo($file, PATHINFO_FILENAME);
-            $albumArt = $availableImages[$basename] ?? null;
             $filepath = $directory . '/' . $file;
-            $duration = getAudioDuration($filepath);
-            $title = formatTrackTitle($file);
+            
+            // Extract full ID3 metadata
+            $id3 = getID3Metadata($filepath);
+            
+            // Determine display title (prefer ID3 title, fallback to formatted filename)
+            $displayTitle = $id3['title'] ?: formatTrackTitle($file);
+            
+            // Check for artwork (external file or embedded)
+            $artwork = $availableImages[$basename] ?? null;
+            if (!$artwork) {
+                $artwork = extractEmbeddedArtwork($filepath);
+            }
+            
+            // Build search string with all metadata
+            $searchString = strtolower(implode(' ', array_filter([
+                $displayTitle,
+                $id3['artist'],
+                $id3['album'],
+                $id3['year'],
+                $id3['genre'],
+                $file
+            ])));
             
             $musicFiles[] = [
                 'filename' => $file,
-                'title' => $title,
+                'title' => $displayTitle,
+                'artist' => $id3['artist'],
+                'album' => $id3['album'],
+                'year' => $id3['year'],
+                'genre' => $id3['genre'],
+                'track_number' => $id3['track_number'],
+                'comment' => $id3['comment'],
                 'extension' => $extension,
                 'mime' => $mimeTypes[$extension] ?? 'audio/mpeg',
                 'size' => filesize($file),
                 'size_mb' => round(filesize($file) / (1024 * 1024), 1),
-                'artwork' => $albumArt,
-                'duration' => $duration,
-                'duration_formatted' => formatDuration($duration),
-                'search_string' => strtolower($title . ' ' . $file)
+                'artwork' => $artwork,
+                'duration' => $id3['duration'],
+                'duration_formatted' => formatDuration($id3['duration']),
+                'bitrate' => $id3['bitrate'],
+                'sample_rate' => $id3['sample_rate'],
+                'search_string' => $searchString
             ];
         }
     }
 
+    // Sort by artist, then album, then track number
     usort($musicFiles, function($a, $b) {
-        return strcmp($a['title'], $b['title']);
+        $artistCmp = strcasecmp($a['artist'] ?: 'Unknown', $b['artist'] ?: 'Unknown');
+        if ($artistCmp !== 0) return $artistCmp;
+        
+        $albumCmp = strcasecmp($a['album'] ?: '', $b['album'] ?: '');
+        if ($albumCmp !== 0) return $albumCmp;
+        
+        return ($a['track_number'] ?? 999) - ($b['track_number'] ?? 999);
     });
 
-    file_put_contents($cacheFile, json_encode($musicFiles));
+    file_put_contents($cacheFile, json_encode($musicFiles, JSON_PRETTY_PRINT));
 }
 
 $totalFiles = count($musicFiles);
 $totalSize = array_sum(array_column($musicFiles, 'size'));
 $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
+
+// Get unique artists and albums for filters
+$artists = array_values(array_unique(array_filter(array_column($musicFiles, 'artist'))));
+$albums = array_values(array_unique(array_filter(array_column($musicFiles, 'album'))));
+$genres = array_values(array_unique(array_filter(array_column($musicFiles, 'genre'))));
+sort($artists);
+sort($albums);
+sort($genres);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -163,7 +294,10 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         .refresh-link:hover { opacity: 1; color: var(--primary); }
 
         /* CONTROLS */
-        .controls-section { display: grid; grid-template-columns: 1fr auto; gap: 15px; margin-bottom: 30px; }
+        .controls-section { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        
+        .search-and-stats { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: center; }
+        
         .search-box { position: relative; }
         .search-input {
             width: 100%; background: rgba(74, 158, 255, 0.1);
@@ -173,6 +307,15 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         }
         .search-input:focus { border-color: var(--primary); background: rgba(74, 158, 255, 0.2); box-shadow: 0 0 20px rgba(74, 158, 255, 0.2); }
         
+        .filters-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        
+        .filter-select {
+            background: rgba(74, 158, 255, 0.1); border: 1px solid var(--glass-border);
+            color: white; padding: 10px 15px; border-radius: 10px; cursor: pointer;
+            font-size: 14px; outline: none; min-width: 150px;
+        }
+        .filter-select option { background: var(--bg-dark); }
+        
         .controls-bar { display: flex; gap: 10px; flex-wrap: wrap; }
         .control-btn {
             background: rgba(74, 158, 255, 0.2); border: 1px solid rgba(74, 158, 255, 0.4);
@@ -180,13 +323,18 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
             font-weight: 600; transition: all 0.3s;
         }
         .control-btn:hover { background: rgba(74, 158, 255, 0.3); transform: translateY(-2px); }
+        
+        .stats-badge {
+            display: flex; align-items: center; gap: 10px; 
+            color: var(--text-dim); font-size: 0.9rem;
+        }
 
-        /* --- UPDATED GRID & 3D EFFECTS --- */
+        /* MUSIC GRID */
         .music-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
             gap: 25px; 
-            perspective: 1000px; /* Essential for 3D pop */
+            perspective: 1000px;
         }
         
         .music-item {
@@ -207,7 +355,6 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
             box-shadow: 0 0 30px rgba(74, 158, 255, 0.3); 
         }
 
-        /* ACTIVE "POP" STATE */
         .music-item.playing {
             transform: scale(1.05) translateY(-10px) translateZ(20px);
             z-index: 100;
@@ -218,7 +365,6 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
             box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(74, 158, 255, 0.4);
         }
 
-        /* DIM OTHERS ON HOVER (FOCUS EFFECT) */
         .music-grid:hover .music-item:not(:hover):not(.playing) {
             opacity: 0.7;
             filter: grayscale(0.6);
@@ -237,7 +383,6 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         .music-item:hover .artwork-img { transform: scale(1.1); }
         .no-artwork { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 3rem; color: var(--text-dim); }
         
-        /* EQ BARS ANIMATION */
         .music-item.playing .artwork-container::after {
             content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%); z-index: 2;
@@ -266,8 +411,22 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         }
         
         .track-info { padding: 20px; }
-        .track-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-meta { display: flex; gap: 10px; font-size: 0.8rem; color: var(--text-dim); }
+        .track-title { 
+            font-weight: 700; font-size: 1.1rem; margin-bottom: 3px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+        }
+        .track-artist { 
+            font-size: 0.9rem; color: var(--primary); margin-bottom: 5px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .track-album {
+            font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .track-meta { 
+            display: flex; gap: 8px; font-size: 0.75rem; color: var(--text-dim); 
+            flex-wrap: wrap;
+        }
         
         .playing-badge { 
             position: absolute; top: 10px; right: 10px; 
@@ -283,15 +442,15 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
             background: rgba(10, 15, 28, 0.95); border-top: 1px solid var(--glass-border);
             padding: 15px 20px; backdrop-filter: blur(20px); z-index: 1000;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
-            transform: translateY(0);
         }
         
         .player-content { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 20px; justify-content: space-between; }
         
-        .p-info { display: flex; align-items: center; gap: 15px; width: 30%; }
+        .p-info { display: flex; align-items: center; gap: 15px; width: 30%; min-width: 200px; }
         .p-art { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background: #222; }
-        .p-text { overflow: hidden; }
+        .p-text { overflow: hidden; flex: 1; }
         .p-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .p-artist { font-size: 0.85rem; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .p-sub { font-size: 0.8rem; color: var(--text-dim); }
         
         .p-controls { display: flex; align-items: center; gap: 20px; }
@@ -309,6 +468,7 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         
         @media (max-width: 768px) {
             .header h1 { font-size: 2.2rem; }
+            .search-and-stats { grid-template-columns: 1fr; }
             .player-content { flex-direction: column; gap: 10px; padding-bottom: 10px; }
             .p-info { width: 100%; }
             .p-progress-container { width: 100%; order: -1; }
@@ -340,20 +500,48 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         </div>
 
         <div class="controls-section">
-            <div class="search-box">
-                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search <?php echo $totalFiles; ?> tracks..." autocomplete="off">
-            </div>
-            <div class="controls-bar">
-                <button class="control-btn" onclick="playAll()">▶️ Play All</button>
-                <button class="control-btn" onclick="shufflePlay()">🔀 Shuffle</button>
-                <div style="margin-left:auto; display:flex; align-items:center; gap:10px; color:rgba(255,255,255,0.6); font-size:0.9rem;">
+            <div class="search-and-stats">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search <?php echo $totalFiles; ?> tracks by title, artist, album, genre..." autocomplete="off">
+                </div>
+                <div class="stats-badge">
                     <span>💾 <?php echo $totalSizeGB; ?> GB</span>
+                    <span>•</span>
+                    <span id="trackCount"><?php echo $totalFiles; ?> tracks</span>
+                </div>
+            </div>
+            
+            <div class="filters-row">
+                <select class="filter-select" id="artistFilter">
+                    <option value="">All Artists (<?php echo count($artists); ?>)</option>
+                    <?php foreach ($artists as $artist): ?>
+                        <option value="<?php echo htmlspecialchars($artist); ?>"><?php echo htmlspecialchars($artist); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <select class="filter-select" id="albumFilter">
+                    <option value="">All Albums (<?php echo count($albums); ?>)</option>
+                    <?php foreach ($albums as $album): ?>
+                        <option value="<?php echo htmlspecialchars($album); ?>"><?php echo htmlspecialchars($album); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <select class="filter-select" id="genreFilter">
+                    <option value="">All Genres (<?php echo count($genres); ?>)</option>
+                    <?php foreach ($genres as $genre): ?>
+                        <option value="<?php echo htmlspecialchars($genre); ?>"><?php echo htmlspecialchars($genre); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <div class="controls-bar" style="margin-left: auto;">
+                    <button class="control-btn" onclick="playAll()">▶️ Play All</button>
+                    <button class="control-btn" onclick="shufflePlay()">🔀 Shuffle</button>
+                    <button class="control-btn" onclick="clearFilters()">✖️ Clear Filters</button>
                 </div>
             </div>
         </div>
 
-        <div class="music-grid" id="musicGrid">
-            </div>
+        <div class="music-grid" id="musicGrid"></div>
     </div>
 
     <div class="mini-player">
@@ -362,6 +550,7 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
                 <img id="pArt" src="" class="p-art" style="display:none">
                 <div class="p-text">
                     <div class="p-title" id="pTitle">Select a track</div>
+                    <div class="p-artist" id="pArtist" style="display:none"></div>
                     <div class="p-sub" id="pSub">Ready to explore cosmos</div>
                 </div>
             </div>
@@ -388,40 +577,106 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
     <script>
         // --- DATA INITIALIZATION ---
         let tracks = [];
+        let filteredTracks = [];
         try {
             tracks = JSON.parse(document.getElementById('music-data').textContent);
+            filteredTracks = [...tracks];
         } catch(e) { console.error("Failed to load tracks", e); }
         
         let currentTrackIndex = -1;
-        let queue = [];
         const audio = document.getElementById('audioPlayer');
         const grid = document.getElementById('musicGrid');
 
-        // --- RENDER GRID ---
-        function renderGrid(filterText = '') {
-            grid.innerHTML = '';
-            filterText = filterText.toLowerCase();
+        // --- FILTER STATE ---
+        let activeFilters = {
+            search: '',
+            artist: '',
+            album: '',
+            genre: ''
+        };
 
-            tracks.forEach((track, index) => {
-                if (filterText && !track.search_string.includes(filterText)) return;
-
-                const card = document.createElement('div');
-                card.className = `music-item ${currentTrackIndex === index ? 'playing' : ''}`;
-                card.onclick = () => playTrack(index);
+        // --- APPLY FILTERS ---
+        function applyFilters() {
+            filteredTracks = tracks.filter(track => {
+                // Search filter
+                if (activeFilters.search && !track.search_string.includes(activeFilters.search.toLowerCase())) {
+                    return false;
+                }
                 
-                const artHtml = track.artwork 
-                    ? `<img src="${track.artwork}" class="artwork-img" loading="lazy" alt="Art">` 
-                    : `<div class="no-artwork">🎵</div>`;
+                // Artist filter
+                if (activeFilters.artist && track.artist !== activeFilters.artist) {
+                    return false;
+                }
+                
+                // Album filter
+                if (activeFilters.album && track.album !== activeFilters.album) {
+                    return false;
+                }
+                
+                // Genre filter
+                if (activeFilters.genre && track.genre !== activeFilters.genre) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            renderGrid();
+            document.getElementById('trackCount').textContent = `${filteredTracks.length} tracks`;
+        }
 
+        function clearFilters() {
+            activeFilters = { search: '', artist: '', album: '', genre: '' };
+            document.getElementById('searchInput').value = '';
+            document.getElementById('artistFilter').value = '';
+            document.getElementById('albumFilter').value = '';
+            document.getElementById('genreFilter').value = '';
+            applyFilters();
+            showToast('Filters cleared');
+        }
+
+        // --- RENDER GRID ---
+        function renderGrid() {
+            grid.innerHTML = '';
+
+            if (filteredTracks.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--text-dim);"><h2>No tracks found</h2><p style="margin-top: 10px;">Try adjusting your filters</p></div>';
+                return;
+            }
+
+            filteredTracks.forEach((track, filteredIndex) => {
+                const originalIndex = tracks.indexOf(track);
+                const isPlaying = currentTrackIndex === originalIndex;
+                
+                const card = document.createElement('div');
+                card.className = `music-item ${isPlaying ? 'playing' : ''}`;
+                card.onclick = () => playTrack(originalIndex);
+                
+                let artHtml;
+                if (track.artwork) {
+                    artHtml = `<img src="${track.artwork}" class="artwork-img" loading="lazy" alt="Album Art">`;
+                } else {
+                    artHtml = `<div class="no-artwork">🎵</div>`;
+                }
+
+                const artistHtml = track.artist ? `<div class="track-artist">${track.artist}</div>` : '';
+                const albumHtml = track.album ? `<div class="track-album">📀 ${track.album}${track.year ? ` (${track.year})` : ''}</div>` : '';
+                
+                const metaParts = [];
+                if (track.duration_formatted) metaParts.push(track.duration_formatted);
+                metaParts.push(track.extension.toUpperCase());
+                if (track.bitrate) metaParts.push(`${track.bitrate}kbps`);
+                if (track.genre) metaParts.push(track.genre);
+                
                 card.innerHTML = `
                     <span class="playing-badge">PLAYING</span>
                     <div class="artwork-container">${artHtml}</div>
                     <div class="track-info">
                         <div class="track-title">${track.title}</div>
+                        ${artistHtml}
+                        ${albumHtml}
                         <div class="track-meta">
-                            <span>${track.duration_formatted || ''}</span>
-                            <span>• ${track.extension.toUpperCase()}</span>
-                            <span>• ${track.size_mb} MB</span>
+                            ${metaParts.map(p => `<span>${p}</span>`).join('<span>•</span>')}
                         </div>
                     </div>
                 `;
@@ -440,9 +695,8 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
             audio.play().catch(e => console.log("Auto-play prevented", e));
 
             updatePlayerUI(track);
-            renderGrid(document.getElementById('searchInput').value); // Update visual state
+            renderGrid();
             
-            // SMOOTH SCROLL TO STAGE
             setTimeout(() => {
                 const activeCard = document.querySelector('.music-item.playing');
                 if(activeCard) {
@@ -453,22 +707,40 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
 
         function updatePlayerUI(track) {
             document.getElementById('pTitle').textContent = track.title;
-            document.getElementById('pSub').textContent = `Now Playing • ${track.extension.toUpperCase()}`;
+            
+            const artistEl = document.getElementById('pArtist');
+            if (track.artist) {
+                artistEl.textContent = track.artist;
+                artistEl.style.display = 'block';
+            } else {
+                artistEl.style.display = 'none';
+            }
+            
+            const subParts = [];
+            if (track.album) subParts.push(track.album);
+            subParts.push(track.extension.toUpperCase());
+            if (track.bitrate) subParts.push(`${track.bitrate}kbps`);
+            document.getElementById('pSub').textContent = subParts.join(' • ');
             
             const artImg = document.getElementById('pArt');
             if (track.artwork) {
                 artImg.src = track.artwork;
                 artImg.style.display = 'block';
+                
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: track.title,
-                        artist: 'Quantum Library',
-                        artwork: [{ src: track.artwork, sizes: '512x512', type: 'image/jpeg' }]
+                        artist: track.artist || 'Unknown Artist',
+                        album: track.album || 'Unknown Album',
+                        artwork: track.artwork.startsWith('data:') ? [] : [
+                            { src: track.artwork, sizes: '512x512', type: 'image/jpeg' }
+                        ]
                     });
                 }
             } else {
                 artImg.style.display = 'none';
             }
+            
             document.getElementById('playPauseBtn').textContent = '⏸️';
         }
 
@@ -479,28 +751,42 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
             } else if (audio.src) {
                 audio.pause();
                 document.getElementById('playPauseBtn').textContent = '▶️';
-            } else if (tracks.length > 0) {
-                playTrack(0);
+            } else if (filteredTracks.length > 0) {
+                playTrack(tracks.indexOf(filteredTracks[0]));
             }
         }
 
         function nextTrack() {
-            let nextIndex = currentTrackIndex + 1;
-            if (nextIndex >= tracks.length) nextIndex = 0;
-            playTrack(nextIndex);
+            if (filteredTracks.length === 0) return;
+            
+            const currentFilteredIndex = filteredTracks.findIndex(t => tracks.indexOf(t) === currentTrackIndex);
+            let nextFilteredIndex = currentFilteredIndex + 1;
+            if (nextFilteredIndex >= filteredTracks.length) nextFilteredIndex = 0;
+            
+            playTrack(tracks.indexOf(filteredTracks[nextFilteredIndex]));
         }
 
         function prevTrack() {
-            let prevIndex = currentTrackIndex - 1;
-            if (prevIndex < 0) prevIndex = tracks.length - 1;
-            playTrack(prevIndex);
+            if (filteredTracks.length === 0) return;
+            
+            const currentFilteredIndex = filteredTracks.findIndex(t => tracks.indexOf(t) === currentTrackIndex);
+            let prevFilteredIndex = currentFilteredIndex - 1;
+            if (prevFilteredIndex < 0) prevFilteredIndex = filteredTracks.length - 1;
+            
+            playTrack(tracks.indexOf(filteredTracks[prevFilteredIndex]));
         }
 
-        function playAll() { playTrack(0); showToast("Playing all tracks"); }
+        function playAll() { 
+            if (filteredTracks.length > 0) {
+                playTrack(tracks.indexOf(filteredTracks[0])); 
+                showToast(`Playing ${filteredTracks.length} tracks`);
+            }
+        }
 
         function shufflePlay() {
-            const randomIndex = Math.floor(Math.random() * tracks.length);
-            playTrack(randomIndex);
+            if (filteredTracks.length === 0) return;
+            const randomTrack = filteredTracks[Math.floor(Math.random() * filteredTracks.length)];
+            playTrack(tracks.indexOf(randomTrack));
             showToast("Shuffling cosmos...");
         }
 
@@ -515,6 +801,12 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         });
 
         audio.addEventListener('ended', nextTrack);
+        audio.addEventListener('pause', () => {
+            document.getElementById('playPauseBtn').textContent = '▶️';
+        });
+        audio.addEventListener('play', () => {
+            document.getElementById('playPauseBtn').textContent = '⏸️';
+        });
 
         document.getElementById('progressBar').addEventListener('click', (e) => {
             if (!audio.src) return;
@@ -525,18 +817,43 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
         });
 
         document.getElementById('searchInput').addEventListener('input', (e) => {
-            renderGrid(e.target.value);
+            activeFilters.search = e.target.value;
+            applyFilters();
+        });
+
+        document.getElementById('artistFilter').addEventListener('change', (e) => {
+            activeFilters.artist = e.target.value;
+            applyFilters();
+        });
+
+        document.getElementById('albumFilter').addEventListener('change', (e) => {
+            activeFilters.album = e.target.value;
+            applyFilters();
+        });
+
+        document.getElementById('genreFilter').addEventListener('change', (e) => {
+            activeFilters.genre = e.target.value;
+            applyFilters();
         });
 
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT') return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             if (e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
             if (e.code === 'ArrowRight') { if(e.ctrlKey) nextTrack(); else audio.currentTime += 5; }
             if (e.code === 'ArrowLeft') { if(e.ctrlKey) prevTrack(); else audio.currentTime -= 5; }
         });
 
+        // Media Session API
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', () => audio.play());
+            navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+            navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+            navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+        }
+
         // --- UTILS ---
         function formatTime(s) {
+            if (isNaN(s)) return '0:00';
             const m = Math.floor(s / 60);
             const sec = Math.floor(s % 60);
             return `${m}:${sec.toString().padStart(2, '0')}`;
@@ -611,4 +928,3 @@ $totalSizeGB = round($totalSize / (1024 * 1024 * 1024), 2);
     </script>
 </body>
 </html>
-
