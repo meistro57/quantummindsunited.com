@@ -15,6 +15,8 @@ function getID3Metadata($filepath) {
     $metadata = [
         'title' => null,
         'artist' => null,
+        'album_artist' => null,
+        'contributing_artists' => null,
         'album' => null,
         'year' => null,
         'genre' => null,
@@ -51,6 +53,22 @@ function getID3Metadata($filepath) {
                 
                 if (isset($comments['title'][0])) $metadata['title'] = $comments['title'][0];
                 if (isset($comments['artist'][0])) $metadata['artist'] = $comments['artist'][0];
+                if (isset($comments['band'][0])) $metadata['album_artist'] = $comments['band'][0];
+                if (isset($comments['albumartist'][0])) $metadata['album_artist'] = $comments['albumartist'][0];
+                if (isset($comments['album_artist'][0])) $metadata['album_artist'] = $comments['album_artist'][0];
+                
+                // Contributing artists (can be array)
+                if (isset($comments['performer'])) {
+                    $metadata['contributing_artists'] = is_array($comments['performer']) 
+                        ? implode(', ', $comments['performer']) 
+                        : $comments['performer'];
+                }
+                if (isset($comments['contributing_artist'])) {
+                    $metadata['contributing_artists'] = is_array($comments['contributing_artist']) 
+                        ? implode(', ', $comments['contributing_artist']) 
+                        : $comments['contributing_artist'];
+                }
+                
                 if (isset($comments['album'][0])) $metadata['album'] = $comments['album'][0];
                 if (isset($comments['year'][0])) $metadata['year'] = $comments['year'][0];
                 if (isset($comments['genre'][0])) $metadata['genre'] = $comments['genre'][0];
@@ -65,6 +83,10 @@ function getID3Metadata($filepath) {
                         $metadata['title'] = $tagData['title'][0];
                     if (isset($tagData['artist'][0]) && empty($metadata['artist'])) 
                         $metadata['artist'] = $tagData['artist'][0];
+                    if (isset($tagData['band'][0]) && empty($metadata['album_artist'])) 
+                        $metadata['album_artist'] = $tagData['band'][0];
+                    if (isset($tagData['albumartist'][0]) && empty($metadata['album_artist'])) 
+                        $metadata['album_artist'] = $tagData['albumartist'][0];
                     if (isset($tagData['album'][0]) && empty($metadata['album'])) 
                         $metadata['album'] = $tagData['album'][0];
                     if (isset($tagData['year'][0]) && empty($metadata['year'])) 
@@ -181,6 +203,8 @@ if (!$forceRefresh && file_exists($cacheFile) && (time() - filemtime($cacheFile)
             $searchString = strtolower(implode(' ', array_filter([
                 $displayTitle,
                 $id3['artist'],
+                $id3['album_artist'],
+                $id3['contributing_artists'],
                 $id3['album'],
                 $id3['year'],
                 $id3['genre'],
@@ -191,6 +215,8 @@ if (!$forceRefresh && file_exists($cacheFile) && (time() - filemtime($cacheFile)
                 'filename' => $file,
                 'title' => $displayTitle,
                 'artist' => $id3['artist'],
+                'album_artist' => $id3['album_artist'],
+                'contributing_artists' => $id3['contributing_artists'],
                 'album' => $id3['album'],
                 'year' => $id3['year'],
                 'genre' => $id3['genre'],
@@ -659,7 +685,19 @@ sort($genres);
                     artHtml = `<div class="no-artwork">🎵</div>`;
                 }
 
-                const artistHtml = track.artist ? `<div class="track-artist">${track.artist}</div>` : '';
+                // Build artist display
+                let artistHtml = '';
+                if (track.artist) {
+                    artistHtml = `<div class="track-artist">${track.artist}</div>`;
+                } else if (track.album_artist) {
+                    artistHtml = `<div class="track-artist">${track.album_artist}</div>`;
+                }
+                
+                // Add contributing artists if different from main artist
+                if (track.contributing_artists && track.contributing_artists !== track.artist) {
+                    artistHtml += `<div class="track-album" style="color: var(--secondary); font-size: 0.8rem;">🎤 ${track.contributing_artists}</div>`;
+                }
+                
                 const albumHtml = track.album ? `<div class="track-album">📀 ${track.album}${track.year ? ` (${track.year})` : ''}</div>` : '';
                 
                 const metaParts = [];
@@ -709,14 +747,20 @@ sort($genres);
             document.getElementById('pTitle').textContent = track.title;
             
             const artistEl = document.getElementById('pArtist');
-            if (track.artist) {
-                artistEl.textContent = track.artist;
+            // Prefer artist, fallback to album artist
+            const displayArtist = track.artist || track.album_artist;
+            if (displayArtist) {
+                artistEl.textContent = displayArtist;
                 artistEl.style.display = 'block';
             } else {
                 artistEl.style.display = 'none';
             }
             
             const subParts = [];
+            // Show contributing artists if different from main artist
+            if (track.contributing_artists && track.contributing_artists !== track.artist) {
+                subParts.push(`🎤 ${track.contributing_artists}`);
+            }
             if (track.album) subParts.push(track.album);
             subParts.push(track.extension.toUpperCase());
             if (track.bitrate) subParts.push(`${track.bitrate}kbps`);
@@ -728,9 +772,10 @@ sort($genres);
                 artImg.style.display = 'block';
                 
                 if ('mediaSession' in navigator) {
+                    const displayArtist = track.artist || track.album_artist || 'Unknown Artist';
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: track.title,
-                        artist: track.artist || 'Unknown Artist',
+                        artist: displayArtist,
                         album: track.album || 'Unknown Album',
                         artwork: track.artwork.startsWith('data:') ? [] : [
                             { src: track.artwork, sizes: '512x512', type: 'image/jpeg' }
