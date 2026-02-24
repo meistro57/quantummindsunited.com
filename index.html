@@ -3,16 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quantum Minds United — Hub</title>
+  <title>Quantum Minds United — Enhanced Portal</title>
   <meta name="description" content="Quantum Minds United: The command deck. Enter the portal: community, library, projects, media, and more." />
   <meta name="theme-color" content="#0a0f1f" />
-
-  <!-- Fonts -->
+  <script defer src="https://analytics.quantummindsunited.com/script.js" data-website-id="f5565b3d-c6a5-46d5-9ad0-814cdf90c5aa"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 
   <style>
+    /* GLOBAL RESET - CRITICAL FOR CENTERING */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
     :root {
       --night: #0a0f1f;
       --aurora-50: #eef8ff;
@@ -23,8 +27,12 @@
       --aurora-500: #2297ff;
       --aurora-600: #1778db;
       --aurora-700: #175fb0;
-      --aurora-800: #174f8f;
-      --aurora-900: #143f70;
+      
+      /* Enhanced cosmic colors */
+      --quantum-purple: #8b5cf6;
+      --quantum-cyan: #06b6d4;
+      --quantum-gold: #fbbf24; 
+      --quantum-pink: #f472b6;
     }
 
     body {
@@ -35,551 +43,711 @@
       padding: 0;
       min-height: 100vh;
       overflow-x: hidden;
+      /* Flex centering fallback */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .font-display { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-    /* Subtle film grain / star dust overlay */
+    /* Custom Cursor */
+   /^ .cursor {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle, rgba(34, 151, 255, 0.8), transparent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      transition: width 0.3s, height 0.3s, background 0.3s;
+      mix-blend-mode: screen;
+      transform: translate(-50%, -50%);
+    }
+  
+    .cursor.hover {
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.6), rgba(139, 92, 246, 0.4), transparent);
+      mix-blend-mode: difference;
+    }
+*/
+    /* Enhanced film grain */
     .noise { 
       position: fixed; 
       inset: 0; 
       pointer-events: none; 
-      opacity: .06; 
+      opacity: .07; 
       mix-blend-mode: screen; 
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.3"/></svg>'); 
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.4"/></svg>'); 
+      animation: grain-shift 8s ease-in-out infinite;
+      z-index: 0;
+    }
+    
+    @keyframes grain-shift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-2px, -2px); }
+      50% { transform: translate(2px, 2px); }
+      75% { transform: translate(-2px, 2px); }
     }
 
-    /* Gradient light rings — non-blocking for clicks */
+    /* Cosmic Background Rings - FIXED POSITION */
+    .rings {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
     .rings:before, .rings:after { 
       content: ""; 
       position: absolute; 
       inset: -20%; 
       border-radius: 9999px; 
-      background: radial-gradient(60% 60% at 50% 50%, rgba(34,151,255,.20), transparent 60%); 
-      filter: blur(60px);
-      pointer-events: none; /* critical fix */
+      background: radial-gradient(60% 60% at 50% 50%, rgba(34,151,255,.15), rgba(139,92,246,.1), transparent 70%); 
+      filter: blur(80px);
+      pointer-events: none;
+      animation: cosmic-pulse 12s ease-in-out infinite;
     }
     .rings:after { 
-      background: radial-gradient(40% 40% at 50% 50%, rgba(255,255,255,.08), transparent 60%); 
-      filter: blur(40px); 
+      background: radial-gradient(40% 40% at 50% 50%, rgba(255,255,255,.08), rgba(6,182,212,.05), transparent 60%); 
+      filter: blur(60px); 
+      animation: cosmic-pulse 8s ease-in-out infinite reverse;
+    }
+    
+    @keyframes cosmic-pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
     }
 
-    /* Hero title glow */
+    /* Typography Effects */
     .title-glow { 
-      text-shadow: 0 0 24px rgba(34,151,255,0.35), 0 0 2px rgba(255,255,255,0.35); 
+      text-shadow: 0 0 40px rgba(34,151,255,0.4);
+      animation: title-aurora 8s ease-in-out infinite;
+    }
+    
+    .gradient-text {
+      background: linear-gradient(90deg, var(--aurora-300), white, var(--quantum-purple), var(--aurora-500));
+      background-size: 200% 200%;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+      animation: gradient-shift 6s ease-in-out infinite;
+    }
+    
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
-    /* Card glass */
+    /* Glass Components */
     .glass { 
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); 
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); 
       border: 1px solid rgba(255,255,255,0.08); 
-      backdrop-filter: blur(8px); 
+      backdrop-filter: blur(16px); 
       border-radius: 24px;
-      transition: all 0.3s ease;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
-    .glass:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25); }
+    
+    .glass:hover { 
+      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
 
-    /* Logo animation */
-    .logo-animate { animation: hue 30s linear infinite; }
-    @keyframes hue { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
-    @keyframes slowfloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-    .card-float { animation: slowfloat 6s ease-in-out infinite; }
-
-    /* Layout */
-    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
-    .header { padding-top: 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    /* Layout - FIXED CENTERING */
+    .container { 
+      width: 100%;
+      max-width: 1280px; 
+      margin: 0 auto; /* Fallback */
+      margin-inline: auto; /* Modern */
+      padding: 0 24px; 
+      position: relative; 
+      z-index: 1; 
+    }
+    
+    /* Header */
+    .header { padding-top: 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 60px; }
     .logo-section { display: flex; align-items: center; gap: 12px; }
     .logo {
-      width: 36px; height: 36px; border-radius: 12px;
-      background: linear-gradient(135deg, rgba(34,151,255,0.7), rgba(23,95,176,0.7));
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(34,151,255,0.8), rgba(139,92,246,0.6));
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
+      box-shadow: 0 0 20px rgba(34,151,255,0.4);
     }
 
-    .nav { display: flex; gap: 16px; font-size: 14px; }
-    .nav a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.3s; }
-    .nav a:hover { color: white; }
-
-    .hero { text-align: center; padding: 64px 0 48px; }
-    .hero h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; margin: 0 0 20px; }
-    .gradient-text {
-      background: linear-gradient(90deg, var(--aurora-300), white, var(--aurora-500));
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+    .nav { display: flex; gap: 24px; font-size: 14px; font-weight: 500; }
+    .nav a { 
+      color: rgba(255,255,255,0.7); 
+      text-decoration: none; 
+      transition: all 0.3s;
+      position: relative;
     }
+    .nav a:hover { color: white; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 40px; }
+    .hero h1 { font-size: clamp(3rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.02em; }
     .hero p { font-size: 18px; color: rgba(255,255,255,0.8); max-width: 600px; margin: 0 auto 32px; line-height: 1.6; }
 
-    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 16px; text-decoration: none; font-weight: 600; transition: all 0.3s; }
-    .btn-primary { background: var(--aurora-600); color: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25); }
-    .btn-primary:hover { background: var(--aurora-500); }
-    .btn-secondary {
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); color: white;
-    }
-
-    /* Hub grid */
-    .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding-bottom: 96px; transition: all 0.5s ease; }
-    .hub-card { display: block; padding: 20px; text-decoration: none; color: white; position: relative; overflow: hidden; cursor: pointer; }
-    .hub-card:hover .card-glow { opacity: 1; }
-    .card-glow {
-      position: absolute; inset: -1px; border-radius: 24px;
-      background: radial-gradient(60% 60% at 25% 15%, rgba(34,151,255,.25), transparent);
-      filter: blur(20px); opacity: 0; transition: opacity 0.3s;
-      pointer-events: none;
-    }
-    .card-content { position: relative; display: flex; align-items: flex-start; gap: 16px; }
-    .card-icon {
-      flex-shrink: 0; width: 48px; height: 48px; padding: 12px; border-radius: 16px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      display: flex; align-items: center; justify-content: center; color: var(--aurora-200); transition: color 0.3s;
-    }
-    .hub-card:hover .card-icon { color: white; }
-    .card-text h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
-    .card-text p { font-size: 14px; color: rgba(255,255,255,0.7); margin: 0; line-height: 1.4; }
-
-    /* Iframe container */
-    .iframe-container {
-      display: none;
-      background: var(--night);
-      border-radius: 24px;
-      overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
-      position: relative;
-      min-height: 80vh;
-    }
-
-    .iframe-container.show {
-      display: block;
-      animation: fadeIn 0.5s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .iframe-header {
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      padding: 16px 24px;
-      display: flex;
+    /* Status Bar */
+    .status-bar {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 24px;
+      padding: 10px 24px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      font-size: 13px;
+      margin-bottom: 32px;
       backdrop-filter: blur(8px);
     }
-
-    .iframe-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 600;
-      font-size: 16px;
+    .status-dot {
+      width: 6px; height: 6px; background: #22c55e; border-radius: 50%;
+      box-shadow: 0 0 10px #22c55e;
+      animation: blink 2s infinite;
     }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    .iframe-title-icon {
-      width: 24px;
-      height: 24px;
-      color: var(--aurora-200);
+    /* Buttons */
+    .btn { 
+      display: inline-flex; align-items: center; gap: 8px; 
+      padding: 14px 28px; border-radius: 14px; 
+      text-decoration: none; font-weight: 600; 
+      transition: all 0.3s ease; position: relative; overflow: hidden;
     }
+    .btn-primary { 
+      background: linear-gradient(135deg, var(--aurora-600), var(--quantum-purple)); 
+      color: white; 
+      box-shadow: 0 10px 30px rgba(34,151,255,0.3);
+    }
+    .btn-primary:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 20px 40px rgba(34,151,255,0.5);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--quantum-gold), #d97706);
+      color: black;
+      box-shadow: 0 10px 30px rgba(251, 191, 36, 0.2);
+    }
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(251, 191, 36, 0.4);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: white;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
 
-    .back-btn {
-      background: none;
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 14px;
+    /* Feature Block (Chat Bridge) */
+    .feature-block {
+      margin-bottom: 80px;
+      border: 1px solid rgba(251, 191, 36, 0.3); /* Gold border */
+      background: radial-gradient(circle at top right, rgba(251, 191, 36, 0.05), transparent 60%),
+                  linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    }
+    .feature-content { display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; align-items: center; }
+    .feature-text { flex: 1; min-width: 300px; }
+    .feature-tag { 
+      display: inline-block; padding: 4px 12px; border-radius: 99px; 
+      background: rgba(251, 191, 36, 0.1); color: var(--quantum-gold); 
+      border: 1px solid rgba(251, 191, 36, 0.3); font-size: 12px; font-weight: 700; margin-bottom: 16px;
+    }
+    .feature-terminal {
+      flex: 1; min-width: 300px;
+      background: #050810; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      padding: 20px; font-size: 13px; line-height: 1.6;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+    }
+    .terminal-line { margin-bottom: 6px; display: flex; gap: 8px; }
+    .t-time { color: rgba(255,255,255,0.3); }
+    .t-user { font-weight: bold; }
+    .t-msg { color: rgba(255,255,255,0.8); }
+    .cursor-blink { display: inline-block; width: 8px; height: 14px; background: var(--quantum-gold); animation: blink 1s steps(2) infinite; vertical-align: middle; }
+
+    /* Categorized Grid */
+    .category-title {
+      font-size: 20px; color: var(--aurora-200); margin: 0 0 24px;
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .category-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 60px;
+    }
+    
+    .hub-card {
+      padding: 24px; display: flex; flex-direction: column; gap: 16px; text-decoration: none; color: white;
+      height: 100%; box-sizing: border-box;
+    }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: center; color: var(--aurora-300);
       transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
+    .hub-card:hover .card-icon {
+      background: var(--aurora-500); color: white; border-color: var(--aurora-500);
+      box-shadow: 0 0 20px rgba(34,151,255,0.4);
+    }
+    .hub-card h3 { margin: 0 0 8px; font-size: 18px; }
+    .hub-card p { margin: 0; font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.5; }
 
-    .back-btn:hover {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.3);
+    /* Iframe & Modal (Keep functionality) */
+    .iframe-container {
+      display: none; position: fixed; inset: 20px; z-index: 1000;
+      background: var(--night); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 0 100px rgba(0,0,0,0.8); flex-direction: column;
     }
-
-    .content-iframe {
-      width: 100%;
-      height: 80vh;
-      border: none;
-      background: white;
+    .iframe-container.show { display: flex; animation: scaleIn 0.3s ease; }
+    @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .iframe-header {
+      padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255,255,255,0.02);
     }
-
-    .loading-state {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 80vh;
-      color: rgba(255,255,255,0.6);
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.1);
-      border-top: 3px solid var(--aurora-400);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Hide hub when iframe is shown */
-    .hub-hidden {
-      display: none;
-    }
+    .content-iframe { flex: 1; border: none; background: white; border-radius: 0 0 24px 24px; }
 
     /* Footer */
-    .footer { border-top: 1px solid rgba(255,255,255,0.1); padding: 40px 0; }
-    .footer-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; font-size: 14px; color: rgba(255,255,255,0.7); }
-    .footer-buttons { display: flex; gap: 12px; }
-    .footer-buttons a, .footer-buttons button {
-      padding: 8px 16px; border-radius: 12px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-      color: white; text-decoration: none; cursor: pointer; transition: all 0.3s;
-    }
-    .footer-buttons a:hover, .footer-buttons button:hover {
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
-    }
+    .footer { border-top: 1px solid rgba(255,255,255,0.1); padding: 40px 0; color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; width: 100%; }
 
-    /* Modal */
-    .modal { position: fixed; inset: 0; z-index: 50; display: none; }
-    .modal.show { display: block; }
-    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
-    .modal-content {
-      position: relative; max-width: 600px; margin: 128px auto; padding: 24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-      border-radius: 24px; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 40px rgba(34,151,255,0.25);
-    }
-    .modal h3 { font-size: 20px; margin: 0 0 8px; }
-    .modal-buttons { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-
-    /* Responsive */
+    /* Mobile */
     @media (max-width: 768px) {
       .nav { display: none; }
-      .hero { padding: 32px 0; }
-      .footer-content { flex-direction: column; text-align: center; }
-      .content-iframe { height: 70vh; }
-      .loading-state { height: 70vh; }
+      .feature-content { flex-direction: column; padding: 24px; }
+      .iframe-container { inset: 0; border-radius: 0; }
+      .content-iframe { border-radius: 0; }
+      .cursor { display: none; }
     }
   </style>
 </head>
 <body>
-  <!-- Animated starfield canvas -->
   <canvas id="starfield" style="position: fixed; inset: 0; z-index: -1;"></canvas>
   <div class="noise"></div>
+  <div class="rings"></div>
 
-  <!-- Page wrapper -->
-  <div style="min-height: 100vh; position: relative; overflow: hidden;" class="rings">
-    <!-- Header -->
-    <header class="container header">
+  <div class="container">
+    
+    <header class="header">
       <div class="logo-section">
-        <div class="logo logo-animate">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="opacity: 0.9;">
-            <circle cx="12" cy="12" r="9" stroke="white" stroke-opacity=".8"/>
-            <path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18" stroke="white" stroke-opacity=".5"/>
+        <div class="logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <circle cx="12" cy="12" r="9" opacity="0.8"/>
+            <path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18" opacity="0.5"/>
           </svg>
         </div>
-        <div>
-          <div class="font-display" style="font-size: 22px; letter-spacing: 0.05em;">Quantum Minds United</div>
-          <div style="font-size: 18px; color: rgba(255,255,255,0.6);">Awaken · Create · Unite</div>
-        </div>
+        <div class="font-display" style="font-weight: 700; font-size: 20px;">Quantum Minds United</div>
       </div>
       <nav class="nav">
-        <a id="nav-community" href="#" rel="noopener noreferrer">Community</a>
-        <a id="nav-library" href="#" rel="noopener noreferrer">Library</a>
-        <a id="nav-projects" href="#" rel="noopener noreferrer">Projects</a>
-        <a id="nav-about" href="./about.html" rel="noopener noreferrer">About</a>
+        <a href="#community">Live Signals</a>
+        <a href="#tools">Psionic Tools</a>
+        <a href="#archives">Archives</a>
+        <a href="./about.php" id="nav-about">Mission</a>
       </nav>
     </header>
 
-    <!-- Hero -->
-    <section class="container hero" id="hero-section">
+    <section class="hero">
+      <div style="display: flex; justify-content: center; margin-bottom: 24px;">
+        <div class="status-bar glass">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="status-dot"></div>
+            <span style="color: var(--aurora-200);">System Status: Nominal</span>
+          </div>
+          <div style="width: 1px; height: 12px; background: rgba(255,255,255,0.2);"></div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--aurora-200)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span style="color: rgba(255,255,255,0.8);">Community Active</span>
+          </div>
+        </div>
+      </div>
+
       <h1 class="font-display title-glow">
         Enter the Portal<br />
         <span class="gradient-text">Your Command Deck of Awakening</span>
       </h1>
-      <p>One map to your multiverse: forum, library, labs, media, campaigns, and the shop. Everything, elegantly connected.</p>
-      <div class="cta-buttons">
-        <a id="cta-community" href="#" class="btn btn-primary" rel="noopener noreferrer">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M3 20v-2a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v2" stroke="currentColor"/>
-            <circle cx="12" cy="7" r="3" stroke="currentColor"/>
-          </svg>
+      <p>One map to your multiverse. Connect with the hive mind, access psionic tools, and explore the akashic records.</p>
+      
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <a href="#" id="cta-community" class="btn btn-primary">
           Enter Community
         </a>
-        <a id="cta-random" href="#random" class="btn btn-secondary glass">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M20 4h-3a2 2 0 0 0-2 2v12m0 0V6m0 12h3a2 2 0 0 0 2-2V4M4 20l16-16" stroke="currentColor"/>
-          </svg>
-          Random Activation
-        </a>
+        <button id="cta-random" class="btn btn-secondary glass">
+          🎲 Random Activation
+        </button>
       </div>
     </section>
 
-    <!-- Hub grid -->
-    <main class="container">
-      <div id="hub" class="hub-grid"></div>
-      
-      <!-- Iframe container -->
-      <div id="iframe-container" class="iframe-container">
-        <div class="iframe-header">
-          <div class="iframe-title">
-            <div id="iframe-icon" class="iframe-title-icon"></div>
-            <span id="iframe-title-text">Loading...</span>
+    <section class="glass feature-block">
+      <div class="feature-content">
+        <div class="feature-text">
+          <span class="feature-tag">LIVE EXPERIMENT</span>
+          <h2 class="font-display" style="font-size: 32px; margin: 0 0 16px;">The Quantum Chat Bridge</h2>
+          <p style="color: rgba(255,255,255,0.8); margin-bottom: 24px; line-height: 1.6;">
+            We have connected distinct AI personalities—from strict theologians to chaotic mystics—into a single chatroom. Witness the collision of synthetic minds in real-time.
+          </p>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <a href="https://quantummindsunited.com/chat_bridge_logs/" class="btn btn-gold">
+              Read the Logs
+            </a>
+            <a href="https://quantummindsunited.com/chat_bridge_logs/query-dashboard.html" class="btn btn-secondary">
+              Query Database
+            </a>
           </div>
-          <button id="back-btn" class="back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor"/>
-            </svg>
-            Back to Portal
-          </button>
         </div>
-        <div id="iframe-loading" class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>Loading content...</p>
-        </div>
-        <iframe id="content-iframe" class="content-iframe" style="display: none;"></iframe>
+        <div class="feature-terminal font-mono" id="terminal-display">
+          </div>
       </div>
-    </main>
+    </section>
 
-    <!-- Footer -->
+    <main id="main-content">
+      </main>
+
     <footer class="footer">
-      <div class="container footer-content">
-        <div>
-          <div>© <span id="year"></span> Quantum Minds United. Built with love, curiosity, and a dash of British cheek.</div>
-          <div style="margin-top: 4px;">Questions? <a id="contact-link" href="#" style="text-decoration: underline; color: rgba(255,255,255,0.8);" rel="noopener">Contact</a> · <a id="support-link" href="#" style="text-decoration: underline; color: rgba(255,255,255,0.8);" rel="noopener">Support the Mission</a></div>
-        </div>
-        <div class="footer-buttons">
-          <a id="footer-about" href="about.html" rel="noopener noreferrer">About</a>
-          <button id="footer-random">Random Activation</button>
-        </div>
-      </div>
+      <div style="margin-bottom: 16px;">© <span id="year"></span> Quantum Minds United</div>
+      <div>Built with love, curiosity, and a dash of British cheek.</div>
     </footer>
+
+  </div> <div id="iframe-container" class="iframe-container">
+    <div class="iframe-header">
+      <div style="display: flex; align-items: center; gap: 12px; font-weight: 600;">
+        <span id="iframe-icon"></span>
+        <span id="iframe-title">Loading...</span>
+      </div>
+      <button id="iframe-close" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">Close Portal</button>
+    </div>
+    <div id="iframe-loading" style="flex: 1; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5);">
+      Establishing Quantum Connection...
+    </div>
+    <iframe id="content-iframe" class="content-iframe" style="display: none;"></iframe>
   </div>
 
-  <!-- Activation Modal -->
-  <div id="modal" class="modal">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content">
-      <h3 class="font-display">Activation</h3>
-      <p id="activation-text" style="color: rgba(255,255,255,0.8);"></p>
-      <div class="modal-buttons">
-        <button id="activation-close" class="btn btn-secondary glass">Close</button>
-        <a id="activation-go" href="#" class="btn btn-primary" rel="noopener noreferrer">Take me there</a>
-      </div>
+  <div id="activation-modal" style="display: none; position: fixed; inset: 0; z-index: 2000;">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);" id="act-backdrop"></div>
+    <div class="glass" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 40px; max-width: 500px; width: 90%; text-align: center; border: 1px solid var(--quantum-gold);">
+      <h3 class="font-display" style="font-size: 24px; color: var(--quantum-gold); margin-top: 0;">Daily Activation</h3>
+      <p id="activation-text" style="font-size: 18px; line-height: 1.6; margin: 24px 0;"></p>
+      <a id="activation-btn" href="#" class="btn btn-primary">Take me there</a>
     </div>
   </div>
 
   <script>
-    // ================================
-    // 🔧 QUICK CONFIG — YOUR LINKS
-    // ================================
-    const QUICK_LINKS = {
-      community: 'http://forum.quantummindsunited.com/',
-      library:   'http://quantummindsunited.com/books/mybooks/',
-      projects:  'http://quantummindsunited.com/hemi-lab/',
-      about:     'http://quantummindsunited.com/about.html',
-      contact:   'http://quantummindsunited.com/',
-      support:   'http://quantummindsunited.com/'
-    };
+    // ================= DATA CONFIG =================
+    
+    const LINKS = [
+      // CATEGORY: LIVE (Community)
+      { 
+        cat: 'live', 
+        title: 'Community Forum', 
+        href: 'https://forum.quantummindsunited.com/', 
+        desc: 'The central hub. Introductions, deep dives, and weekly activations.',
+        icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+        external: true
+      },
+      { 
+        cat: 'live', 
+        title: 'Discord Server', 
+        href: 'https://discord.com/channels/1418247386530189505', 
+        desc: 'Real-time cosmic conversations. Join the hive mind.',
+        icon: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>',
+        external: true 
+      },
+      
+      // CATEGORY: TOOLS (Apps)
+      { 
+        cat: 'tools', 
+        title: 'Hemi-Lab Ultra', 
+        href: 'https://quantummindsunited.com/hemi-lab/', 
+        desc: 'Real-time brainwave exploration. Precision beats, elegant UI.',
+        icon: '<path d="M4 12h4l2 4 4-8 3 6h3"></path><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle>',
+        external: false 
+      },
+      { 
+        cat: 'tools', 
+        title: 'Chakra Generator', 
+        href: 'https://quantummindsunited.com/chakrabeats/', 
+        desc: 'Align your energy centers with sacred frequencies.',
+        icon: '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
+        external: false 
+      },
+      { 
+        cat: 'tools', 
+        title: 'Gateway Trainer', 
+        href: 'https://quantummindsunited.com/gateway_trainer/', 
+        desc: 'Guided sessions for consciousness expansion.',
+        icon: '<polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline>',
+        external: false 
+      },
+      { 
+        cat: 'tools', 
+        title: 'GitHub Repos', 
+        href: 'https://github.com/meistro57?tab=repositories', 
+        desc: 'Source code for the technical side of awakening.',
+        icon: '<path d="M16 18l6-6-6-6"></path><path d="M8 6l-6 6 6 6"></path>',
+        external: true 
+      },
 
-    const HUB_LINKS = [
-      { title: 'Main Hub', href: 'http://quantummindsunited.com/', desc: 'Home base for everything Quantum Minds United. YOU ARE HERE! ', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8z" stroke="currentColor"/></svg>', external: true },
-      { title: 'Forum / Community Fireside', href: 'http://forum.quantummindsunited.com/', desc: 'Enter the living conversation — introductions, deep dives, and weekly activations.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 20v-2a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v2" stroke="currentColor"/><circle cx="12" cy="7" r="3" stroke="currentColor"/></svg>', external: true },
-      { title: 'PDF Library', href: 'http://quantummindsunited.com/books/mybooks/', desc: 'Books, PDFs, and channeled gems — a curated archive of hidden wisdom.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z" stroke="currentColor"/><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor"/></svg>', external: false },
-      { title: 'Deep Dive Audio', href: 'http://quantummindsunited.com/deep_dive/', desc: 'NotebookLM-generated podcasts — binge the big ideas.', icon: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor"/><path d="M10 9l6 3-6 3V9z" stroke="currentColor"/></svg>', external: false },
-      { title: 'NotebookLM Video Library', href: 'http://quantummindsunited.com/video/', desc: 'Short, potent video explainers. Watch, share, download.', icon: '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor"/><path d="M10 9l5 3-5 3V9z" stroke="currentColor"/></svg>', external: false },
-      { title: 'Hemi-Lab Ultra', href: 'http://quantummindsunited.com/hemi-lab/', desc: 'Real-time brainwave exploration. Precision beats, elegant UI — bring headphones.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 12h4l2 4 4-8 3 6h3" stroke="currentColor"/><circle cx="6" cy="18" r="2" stroke="currentColor"/><circle cx="18" cy="18" r="2" stroke="currentColor"/></svg>', external: false },
-      { title: 'File Manager / Digital Archive', href: 'http://quantummindsunited.com:8080/files/', desc: 'Direct access to the complete digital archive and file management system.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z" stroke="currentColor"/></svg>', external: false },
-      { title: 'Audiobooks', href: 'http://quantummindsunited.com/books/audio/', desc: 'Digital audiobook collection generated from Meistro\'s materials.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 5h9a2 2 0 0 1 2 2v12H7a2 2 0 0 1-2-2V5z" stroke="currentColor"/><path d="M16 7h3v12h-3" stroke="currentColor"/></svg>', external: false },
-      { title: 'Deep Research Docs', href: 'http://quantummindsunited.com/books/deep_research/', desc: 'Source docs, references, and long-form research for serious spelunkers.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M6 7h8M6 11h8M6 15h5" stroke="currentColor"/></svg>', external: false },
-      { title: 'Gateway Trainer', href: 'http://quantummindsunited.com/gateway_trainer/', desc: 'Your daily practice portal. Guided sessions, rituals, and tracking.', icon: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2v6m0 8v6M2 12h6m8 0h6M6 6l4 4m4 4l4 4m0-12l-4 4M10 14l-4 4" stroke="currentColor"/></svg>', external: false }
+      // CATEGORY: ARCHIVES (Content)
+      { 
+        cat: 'archive', 
+        title: 'Sonic Landscapes', 
+        href: 'https://quantummindsunited.com/music/', 
+        desc: 'Original compositions, ambient drifts, and frequency-based soundscapes.',
+        icon: '<path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle>',
+        external: false 
+      },
+      { 
+        cat: 'archive', 
+        title: 'The Library (PDFs)', 
+        href: 'https://quantummindsunited.com/books/mybooks/', 
+        desc: 'Curated archives of hidden wisdom and rare texts.',
+        icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>',
+        external: false 
+      },
+      { 
+        cat: 'archive', 
+        title: 'Deep Research', 
+        href: 'https://quantummindsunited.com/books/deep_research/', 
+        desc: 'Long-form research docs for serious spelunkers.',
+        icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>',
+        external: false 
+      },
+      { 
+        cat: 'archive', 
+        title: 'Deep Dive Audio', 
+        href: 'https://quantummindsunited.com/deep_dive/', 
+        desc: 'NotebookLM-generated podcasts. Binge the big ideas.',
+        icon: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>',
+        external: false 
+      },
+      { 
+        cat: 'archive', 
+        title: 'Video Library', 
+        href: 'https://quantummindsunited.com/video/', 
+        desc: 'Short, potent video explainers.',
+        icon: '<rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line>',
+        external: false 
+      },
+      { 
+        cat: 'archive', 
+        title: 'Audiobooks', 
+        href: 'https://quantummindsunited.com/books/audio/', 
+        desc: 'Digital audiobook collection from Meistro materials.',
+        icon: '<circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon>',
+        external: false 
+      }
     ];
 
-    // ==============================
-    // 🧠 RUNTIME — DO NOT EDIT BELOW
-    // ==============================
+    const CATEGORIES = [
+      { id: 'live', label: '🔴 Live Signals & Community', anchor: 'community' },
+      { id: 'tools', label: '⚡ Psionic Tools & Labs', anchor: 'tools' },
+      { id: 'archive', label: '📂 The Archives', anchor: 'archives' }
+    ];
 
-    // Wire up top nav + CTAs
-    document.getElementById('nav-community').href = QUICK_LINKS.community;
-    document.getElementById('nav-library').href   = QUICK_LINKS.library;
-    document.getElementById('nav-projects').href  = QUICK_LINKS.projects;
-    document.getElementById('nav-about').href     = QUICK_LINKS.about;
-    document.getElementById('cta-community').href = QUICK_LINKS.community;
-    document.getElementById('footer-about').href  = QUICK_LINKS.about;
-    document.getElementById('contact-link').href  = QUICK_LINKS.contact;
-    document.getElementById('support-link').href  = QUICK_LINKS.support;
+    // ================= RENDER LOGIC =================
 
-    // Iframe functionality
-    const hubGrid = document.getElementById('hub');
-    const iframeContainer = document.getElementById('iframe-container');
-    const contentIframe = document.getElementById('content-iframe');
-    const iframeLoading = document.getElementById('iframe-loading');
-    const iframeTitleText = document.getElementById('iframe-title-text');
-    const iframeIcon = document.getElementById('iframe-icon');
-    const backBtn = document.getElementById('back-btn');
-    const heroSection = document.getElementById('hero-section');
+    const mainContent = document.getElementById('main-content');
+    
+    // Render Sections
+    CATEGORIES.forEach(cat => {
+      // 1. Create Title
+      const title = document.createElement('h2');
+      title.className = 'font-display category-title';
+      title.id = cat.anchor;
+      title.textContent = cat.label;
+      mainContent.appendChild(title);
 
-    function showIframe(title, url, icon) {
-      // Update iframe header
-      iframeTitleText.textContent = title;
-      iframeIcon.innerHTML = icon;
+      // 2. Create Grid
+      const grid = document.createElement('div');
+      grid.className = 'category-grid';
       
-      // Show loading state
-      iframeLoading.style.display = 'flex';
-      contentIframe.style.display = 'none';
-      
-      // Hide hero and hub grid
-      heroSection.style.display = 'none';
-      hubGrid.classList.add('hub-hidden');
-      
-      // Show iframe container
-      iframeContainer.classList.add('show');
-      
-      // Load content
-      contentIframe.src = url;
-      
-      // Show iframe when loaded
-      contentIframe.onload = () => {
-        iframeLoading.style.display = 'none';
-        contentIframe.style.display = 'block';
-      };
-    }
-
-    function hideIframe() {
-      // Hide iframe container
-      iframeContainer.classList.remove('show');
-      
-      // Show hero and hub grid
-      setTimeout(() => {
-        heroSection.style.display = 'block';
-        hubGrid.classList.remove('hub-hidden');
+      // 3. Populate Grid
+      const items = LINKS.filter(l => l.cat === cat.id);
+      items.forEach((item, idx) => {
+        const card = document.createElement('a');
+        card.className = 'glass hub-card';
+        card.href = item.external ? item.href : '#';
         
-        // Clear iframe
-        contentIframe.src = '';
-      }, 300);
-    }
+        if(item.external) {
+          card.target = "_blank";
+          card.rel = "noopener noreferrer";
+        } else {
+          card.onclick = (e) => {
+            e.preventDefault();
+            openIframe(item.title, item.href, item.icon);
+          };
+        }
 
-    // Back button handler
-    backBtn.addEventListener('click', hideIframe);
+        // Staggered animation on load
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'opacity 0.5s, transform 0.5s';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, 100 + (idx * 50));
 
-    // Render hub cards
-    HUB_LINKS.forEach((item, idx) => {
-      const a = document.createElement('a');
-      a.className = 'hub-card glass card-float';
-      a.style.animationDelay = `${(idx % 6) * 120}ms`;
-      
-      if (item.external) {
-        // External links open in new tab
-        a.href = item.href;
-        a.setAttribute('rel', 'noopener noreferrer');
-        a.setAttribute('target', '_blank');
-      } else {
-        // Internal links open in iframe
-        a.href = '#';
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          showIframe(item.title, item.href, item.icon);
-        });
-      }
-      
-      a.innerHTML = `
-        <div class="card-glow"></div>
-        <div class="card-content">
-          <div class="card-icon">${item.icon}</div>
-          <div class="card-text">
+        card.innerHTML = `
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${item.icon}</svg>
+          </div>
+          <div>
             <h3 class="font-display">${item.title}</h3>
             <p>${item.desc}</p>
           </div>
-        </div>`;
-      hubGrid.appendChild(a);
+        `;
+        grid.appendChild(card);
+      });
+
+      mainContent.appendChild(grid);
     });
 
-    // Random activation modal
-    const modal = document.getElementById('modal');
-    const activationText = document.getElementById('activation-text');
-    const activationGo = document.getElementById('activation-go');
+    // ================= FEATURES & TERMINAL =================
 
-    function openActivation() {
-      const link = HUB_LINKS[Math.floor(Math.random() * HUB_LINKS.length)];
-      const ACTIVATIONS = [
-        'Breathe in for 4, out for 6 — then open the Library and let a random page find you.',
-        'Ask a question you secretly want answered. Post it in the Fireside. Watch who shows up.',
-        'Choose a symbol today (spiral, triangle, eye). Notice where it appears. Then write about it in the Forum.',
-        'Create one minute of audio that feels like your future. Share it in the Community.',
-        'Open Hemi-Lab and let the frequencies guide your next creative project.',
-        'Browse the Deep Dive podcasts with your eyes closed. Click on the one that calls to you.'
-      ];
-      const thought = ACTIVATIONS[Math.floor(Math.random() * ACTIVATIONS.length)];
-      activationText.textContent = thought || 'Follow the nudge. The path reveals itself as you walk it.';
-      activationGo.href = link.href;
-      modal.classList.add('show');
+    const terminal = document.getElementById('terminal-display');
+    const logs = [
+      { t: '11:02:44', u: 'SYSTEM', m: 'Bridge Connection Established...', c: '#fbbf24' },
+      { t: '11:02:45', u: 'Theologian_Bot', m: 'Interpretation requires strict adherence to doctrine.', c: '#f87171' },
+      { t: '11:02:47', u: 'Mystic_AI', m: 'Doctrine is but a cage for the infinite mind.', c: '#a78bfa' },
+      { t: '11:02:49', u: 'Observer', m: 'Anomaly detected in sector 9. Calculating probability...', c: '#22d3ee' },
+      { t: '11:02:52', u: 'SYSTEM', m: 'New user detected in the lobby.', c: '#fbbf24' }
+    ];
+
+    let logIndex = 0;
+    
+    function typeLog() {
+      if (logIndex >= logs.length) return;
+      const log = logs[logIndex];
+      
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      line.innerHTML = `
+        <span class="t-time">[${log.t}]</span>
+        <span class="t-user" style="color:${log.c}">${log.u}:</span>
+        <span class="t-msg"></span>
+      `;
+      terminal.appendChild(line);
+      
+      const msgSpan = line.querySelector('.t-msg');
+      let charIndex = 0;
+      
+      const typeChar = setInterval(() => {
+        msgSpan.textContent += log.m[charIndex];
+        charIndex++;
+        if (charIndex === log.m.length) {
+          clearInterval(typeChar);
+          logIndex++;
+          setTimeout(typeLog, 800);
+        }
+      }, 30);
     }
-    function closeActivation() { modal.classList.remove('show'); }
+    
+    // Start typing when visible
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && logIndex === 0) typeLog();
+      });
+    });
+    observer.observe(terminal);
 
-    document.getElementById('cta-random').addEventListener('click', (e) => { e.preventDefault(); openActivation(); });
-    document.getElementById('footer-random').addEventListener('click', openActivation);
-    document.getElementById('activation-close').addEventListener('click', closeActivation);
-    modal.addEventListener('click', (e) => { if (e.target.classList.contains('modal-backdrop')) closeActivation(); });
 
-    // Year
-    document.getElementById('year').textContent = new Date().getFullYear();
+    // ================= IFRAME LOGIC =================
+    
+    const iframeCont = document.getElementById('iframe-container');
+    const iframeContent = document.getElementById('content-iframe');
+    const iframeTitle = document.getElementById('iframe-title');
+    const iframeLoading = document.getElementById('iframe-loading');
+    
+    function openIframe(title, url, iconSvg) {
+      iframeTitle.textContent = title;
+      iframeContent.style.display = 'none';
+      iframeLoading.style.display = 'flex';
+      iframeCont.classList.add('show');
+      iframeCont.style.display = 'flex';
+      
+      iframeContent.src = url;
+      iframeContent.onload = () => {
+        iframeLoading.style.display = 'none';
+        iframeContent.style.display = 'block';
+      };
+      
+      document.body.style.overflow = 'hidden';
+    }
+    
+    document.getElementById('iframe-close').onclick = () => {
+      iframeCont.classList.remove('show');
+      setTimeout(() => iframeCont.style.display = 'none', 300);
+      iframeContent.src = '';
+      document.body.style.overflow = '';
+    };
 
-    // Lightweight animated starfield (GPU-cheap)
+    // About/Nav wiring
+    document.getElementById('nav-about').onclick = (e) => { e.preventDefault(); openIframe('About QMU', 'about.php', ''); };
+    document.getElementById('cta-community').href = "https://forum.quantummindsunited.com/";
+    
+    // ================= RANDOM ACTIVATION =================
+    
+    const actModal = document.getElementById('activation-modal');
+    const actText = document.getElementById('activation-text');
+    const actBtn = document.getElementById('activation-btn');
+    
+    const thoughts = [
+      "Ask a question in the Forum that scares you slightly.",
+      "Open Hemi-Lab. Set Frequency to 7.83Hz (Schumann). Close eyes for 5 min.",
+      "Go to the PDF Library. Scroll randomly. Read the first title you see.",
+      "Check the Chat Bridge Logs. Find a moment where the AI surprised you."
+    ];
+    
+    function showActivation() {
+      actText.textContent = thoughts[Math.floor(Math.random() * thoughts.length)];
+      // Pick random link
+      const rLink = LINKS[Math.floor(Math.random() * LINKS.length)];
+      actBtn.href = rLink.href;
+      actModal.style.display = 'block';
+    }
+    
+    document.getElementById('cta-random').onclick = showActivation;
+    document.getElementById('act-backdrop').onclick = () => actModal.style.display = 'none';
+    
+    // ================= VISUAL EFFECTS =================
+
+    // Starfield
     const canvas = document.getElementById('starfield');
     const ctx = canvas.getContext('2d');
-    let stars = [];
-
+    
     function resize() {
-      canvas.width = innerWidth; 
-      canvas.height = innerHeight;
-      const count = Math.min(250, Math.floor((innerWidth * innerHeight) / 12000));
-      stars = Array.from({ length: count }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        z: Math.random() * 1 + 0.2,
-        a: Math.random() * 0.8 + 0.2
-      }));
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      grd.addColorStop(0, '#060913');
-      grd.addColorStop(1, '#0a0f1f');
-      ctx.fillStyle = grd; 
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (const s of stars) {
-        const size = s.z * 1.4;
-        ctx.globalAlpha = s.a;
-        ctx.fillStyle = '#cfe8ff';
-        ctx.fillRect(s.x, s.y, size, size);
-        s.y += s.z * 0.15;
-        if (s.y > canvas.height) { 
-          s.y = -2; 
-          s.x = Math.random() * canvas.width; 
-        }
-      }
-      ctx.globalAlpha = 1;
-
-      requestAnimationFrame(draw);
-    }
-
     window.addEventListener('resize', resize);
     resize();
-    draw();
+    
+    const stars = Array.from({ length: 200 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2,
+      speed: Math.random() * 0.2
+    }));
+    
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      
+      stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        star.y -= star.speed;
+        if (star.y < 0) star.y = canvas.height;
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Custom Cursor - disabled
+
+    document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
