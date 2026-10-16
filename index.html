@@ -40,7 +40,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--ember);color:var(
 .nav a:hover{color:#fff}
 .nav a:hover::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;background:linear-gradient(90deg,var(--gold),var(--purple));border-radius:2px}
 
-.hero{text-align:center;margin-bottom:28px}
+.hero{text-align:center;margin-bottom:44px}
 .status-bar{display:inline-flex;align-items:center;gap:20px;padding:10px 22px;background:rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.1);border-radius:999px;font-size:13px;margin-bottom:32px;backdrop-filter:blur(8px)}
 .status-dot{width:7px;height:7px;background:#22c55e;border-radius:50%;box-shadow:0 0 10px #22c55e;animation:blink 2s infinite}
 .status-sep{width:1px;height:12px;background:rgba(255,255,255,.2)}
@@ -122,12 +122,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--ember);color:var(
       <div class="status-bar">
         <div style="display:flex;align-items:center;gap:8px"><div class="status-dot"></div><span style="color:var(--gold)">The hive is humming</span></div>
         <div class="status-sep"></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="color:rgba(255,255,255,.8)">Community Active</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span style="color:rgba(255,255,255,.8)">Community Active</span></div>
       </div>
     </div>
 
     <h1 class="font-display">Welcome to the Hive.<br/><span class="grad">Different minds · Same hive · Shared field.</span></h1>
-    <p class="tagline">Different minds · Same hive · Shared field.</p>
     <p>You're not here to <em>consume</em> — you're here to <em>participate</em>. Connect with the hive mind, reach into psionic tools, and rummage the akashic records. There's a kettle on somewhere.</p>
 
     <div class="cta">
